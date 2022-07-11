@@ -23,6 +23,11 @@ def gno():
     yield Contract(token_address)
 
 @pytest.fixture
+def gno_whale(accounts):
+    address = "0x4f8AD938eBA0CD19155a835f617317a6E788c868"
+    yield accounts.at(address, force=True)
+
+@pytest.fixture
 def usdc():
     token_address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
 

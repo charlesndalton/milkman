@@ -15,11 +15,10 @@ contract CowAnywhere {
     using GPv2Order for GPv2Order.Data;
     using GPv2Order for bytes;
 
-    event OrderSubmitted(address user, IERC20 fromToken, IERC20 toToken, uint256 orderAmount, OrderType orderType);
-    event OrderHash(bytes digest);
+    event SwapRequested(address user, address receiver, IERC20 fromToken, IERC20 toToken, uint256 amountIn);
 
     mapping(address => uint128) public nonces;
-    mapping(bytes32 => bool) public approvedOrders;
+    mapping(bytes32 => bool) public validSwapRequests;
 
     // Who we give allowance
     address internal constant gnosisVaultRelayer = 0xC92E8bdf79f0507f65a392b0ab4667716BFE0110; 
@@ -27,23 +26,26 @@ contract CowAnywhere {
     GPv2Settlement internal constant settlement = GPv2Settlement(0x9008D19f58AAbD9eD0D60971565AA8510560ab41);
     // Settlement's domain separator, used to hash order IDs
     bytes32 internal constant domainSeparator = 0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943;
-
-    function submitMarketSell(
-        address _receiver,
-        IERC20 _sellToken, 
-        IERC20 _buyToken,
-        uint256 _sellAmount
+    
+    // Request to asynchronously swap exact tokens for market value of other tokens through cowswap
+    function requestSwapExactTokensForTokens(
+        uint256 _amountIn,
+        IERC20 _fromToken, 
+        IERC20 _toToken,
+        address _to
     ) external {
-        _submitOrder(msg.sender, _receiver, _sellToken, _buyToken, _sellAmount, OrderType.SELL);
-    }
+        _fromToken.transferFrom(msg.sender, address(this), _amountIn);
 
-    function submitMarketBuy(
-        address _receiver,
-        IERC20 _sellToken,
-        IERC20 _buyToken,
-        uint256 _buyAmount
-    ) external {
-        _submitOrder(msg.sender, _receiver, _sellToken, _buyToken, _buyAmount, OrderType.BUY);
+        uint128 _currentUserNonce = nonces[msg.sender];
+
+        validSwapRequests[keccak256(abi.encode(msg.sender,
+                                               _to,
+                                               _fromToken, 
+                                               _toToken, 
+                                               _amountIn, 
+                                               _currentUserNonce))] = true;
+
+        emit SwapRequested(msg.sender, _to, _fromToken, _toToken, _amountIn);
     }
 
     // Called by a bot who has generated a UID via the API
@@ -55,27 +57,5 @@ contract CowAnywhere {
         (bytes32 _orderDigestFromUid, address _owner, ) = _orderUid.extractOrderUidParams();
 
         require(_orderDigestFromOrderDetails == _orderDigestFromUid, "!digest_match");
-    }
-
-    function _submitOrder(
-        address _user,
-        address _receiver,
-        IERC20 _fromToken,
-        IERC20 _toToken,
-        uint256 _orderAmount,
-        OrderType _orderType
-    ) internal {
-        
-        uint128 _currentUserNonce = nonces[_user];
-
-        approvedOrders[keccak256(abi.encode(_user,
-                                            _receiver,
-                                            _fromToken, 
-                                            _toToken, 
-                                            _orderAmount, 
-                                            _orderType, 
-                                            _currentUserNonce))] = true;
-
-        emit OrderSubmitted(_user, _fromToken, _toToken, _orderAmount, _orderType);
     }
 }
