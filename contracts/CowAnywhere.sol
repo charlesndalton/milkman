@@ -17,7 +17,7 @@ contract CowAnywhere {
     using GPv2Order for GPv2Order.Data;
     using GPv2Order for bytes;
 
-    event SwapRequested(address user, address receiver, IERC20 fromToken, IERC20 toToken, uint256 amountIn);
+    event SwapRequested(address user, address receiver, IERC20 fromToken, IERC20 toToken, uint256 amountIn, address priceChecker);
 
     mapping(address => uint128) public nonces;
     mapping(bytes32 => bool) public validSwapRequests;
@@ -46,9 +46,10 @@ contract CowAnywhere {
                                                _fromToken, 
                                                _toToken, 
                                                _amountIn, 
+                                               _priceChecker,
                                                _currentUserNonce))] = true;
 
-        emit SwapRequested(msg.sender, _to, _fromToken, _toToken, _amountIn);
+        emit SwapRequested(msg.sender, _to, _fromToken, _toToken, _amountIn, _priceChecker);
     }
 
     // Called by a bot who has generated a UID via the API
@@ -69,8 +70,8 @@ contract CowAnywhere {
                                                _order.sellToken, 
                                                _order.buyToken, 
                                                _order.sellAmount + _order.feeAmount, // do we need to worry about fee manipulation?
+                                               _priceChecker,
                                                _currentUserNonce))], "!no_swap_request");
-        // run sanity checks
 
         if (_priceChecker != address(0)) {
             require(IPriceChecker(_priceChecker).checkPrice(_order.sellAmount, address(_order.sellToken), address(_order.buyToken), _order.buyAmount), "invalid_min_out");
