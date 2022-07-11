@@ -8,6 +8,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import {GPv2Order} from "@cow-protocol/contracts/libraries/GPv2Order.sol";
 import {GPv2Settlement} from "@cow-protocol/contracts/GPv2Settlement.sol";
 
+import {IPriceChecker} from "../interfaces/IPriceChecker.sol";
+
 enum OrderType { BUY, SELL }
 
 contract CowAnywhere {
@@ -32,7 +34,8 @@ contract CowAnywhere {
         uint256 _amountIn,
         IERC20 _fromToken, 
         IERC20 _toToken,
-        address _to
+        address _to,
+        address _priceChecker // used to verify that any UIDs passed in are setting reasonable minOuts. Set to 0 if you don't want.
     ) external {
         _fromToken.transferFrom(msg.sender, address(this), _amountIn);
 
@@ -52,7 +55,8 @@ contract CowAnywhere {
     function signOrderUid(
         bytes calldata _orderUid,
         GPv2Order.Data calldata _order,
-        address _user
+        address _user,
+        address _priceChecker
     ) external {
         bytes32 _orderDigestFromOrderDetails = _order.hash(domainSeparator);
         (bytes32 _orderDigestFromUid, address _owner, ) = _orderUid.extractOrderUidParams();
@@ -67,6 +71,10 @@ contract CowAnywhere {
                                                _order.sellAmount + _order.feeAmount, // do we need to worry about fee manipulation?
                                                _currentUserNonce))], "!no_swap_request");
         // run sanity checks
+
+        if (_priceChecker != address(0)) {
+            require(IPriceChecker(_priceChecker).checkPrice(_order.sellAmount, address(_order.sellToken), address(_order.buyToken), _order.buyAmount), "invalid_min_out");
+        }
 
         nonces[_user] += 1;
 

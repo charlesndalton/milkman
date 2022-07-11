@@ -22,6 +22,18 @@ def gno():
 
     yield Contract(token_address)
 
+
+@pytest.fixture
+def wbtc():
+    token_address = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"
+
+    yield Contract(token_address)
+
+@pytest.fixture
+def wbtc_whale(accounts):
+    address = "0xBF72Da2Bd84c5170618Fbe5914B0ECA9638d5eb5"
+    yield accounts.at(address, force=True)
+
 @pytest.fixture
 def gno_whale(accounts):
     address = "0x4f8AD938eBA0CD19155a835f617317a6E788c868"
@@ -45,6 +57,13 @@ def cow_anywhere(CowAnywhere, deployer):
     cow_anywhere = deployer.deploy(CowAnywhere)
 
     yield cow_anywhere
+
+@pytest.fixture
+def univ2_price_checker(UniV2PriceChecker, deployer):
+    univ2_price_checker = deployer.deploy(UniV2PriceChecker)
+
+    yield univ2_price_checker
+
 
 @pytest.fixture
 def gnosis_settlement():

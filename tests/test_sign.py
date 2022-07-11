@@ -2,15 +2,15 @@ from eth_abi import encode_abi
 from eth_utils import keccak
 import requests
 
-def test_sign(cow_anywhere, user, gno_whale, gno, dai, chain, gnosis_settlement):
-    amount = 100e18
-    gno.transfer(user, amount, {"from": gno_whale})
+def test_sign(cow_anywhere, user, wbtc_whale, wbtc, dai, chain, gnosis_settlement, univ2_price_checker):
+    amount = 1e8 # 1 btc
+    wbtc.transfer(user, amount, {"from": wbtc_whale})
 
-    gno.approve(cow_anywhere, amount, {"from": user})
+    wbtc.approve(cow_anywhere, amount, {"from": user})
 
-    cow_anywhere.requestSwapExactTokensForTokens(int(amount), gno, dai, user, {"from": user})
+    cow_anywhere.requestSwapExactTokensForTokens(int(amount), wbtc, dai, user, univ2_price_checker, {"from": user})
 
-    (order_uid, order_payload) = cowswap_create_order_id(chain, cow_anywhere, gno, dai, gno.balanceOf(cow_anywhere), user)
+    (order_uid, order_payload) = cowswap_create_order_id(chain, cow_anywhere, wbtc, dai, wbtc.balanceOf(cow_anywhere), user)
 
     # struct Data {
     #     IERC20 sellToken;
@@ -27,7 +27,7 @@ def test_sign(cow_anywhere, user, gno_whale, gno, dai, chain, gnosis_settlement)
     #     bytes32 buyTokenBalance;
     # }
 
-    order = (gno.address, 
+    order = (wbtc.address, 
             dai.address, 
             user.address, 
             int(order_payload["sellAmount"]), 
@@ -42,7 +42,7 @@ def test_sign(cow_anywhere, user, gno_whale, gno, dai, chain, gnosis_settlement)
         )
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    cow_anywhere.signOrderUid(order_uid, order, user)
+    cow_anywhere.signOrderUid(order_uid, order, user, univ2_price_checker)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
 
