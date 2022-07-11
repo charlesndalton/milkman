@@ -51,11 +51,25 @@ contract CowAnywhere {
     // Called by a bot who has generated a UID via the API
     function signOrderUid(
         bytes calldata _orderUid,
-        GPv2Order.Data calldata _order
+        GPv2Order.Data calldata _order,
+        address _user
     ) external {
         bytes32 _orderDigestFromOrderDetails = _order.hash(domainSeparator);
         (bytes32 _orderDigestFromUid, address _owner, ) = _orderUid.extractOrderUidParams();
 
         require(_orderDigestFromOrderDetails == _orderDigestFromUid, "!digest_match");
+
+        uint128 _currentUserNonce = nonces[_user];
+        require(validSwapRequests[keccak256(abi.encode(_user,
+                                               _order.receiver,
+                                               _order.sellToken, 
+                                               _order.buyToken, 
+                                               _order.sellAmount + _order.feeAmount, // do we need to worry about fee manipulation?
+                                               _currentUserNonce))], "!no_swap_request");
+        // run sanity checks
+
+        nonces[_user] += 1;
+
+        settlement.setPreSignature(_orderUid, true);
     }
 }

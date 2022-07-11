@@ -45,3 +45,9 @@ def cow_anywhere(CowAnywhere, deployer):
     cow_anywhere = deployer.deploy(CowAnywhere)
 
     yield cow_anywhere
+
+@pytest.fixture
+def gnosis_settlement():
+    contract_address = "0x9008D19f58AAbD9eD0D60971565AA8510560ab41"
+
+    yield Contract(contract_address)
