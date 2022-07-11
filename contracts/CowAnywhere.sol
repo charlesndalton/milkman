@@ -8,7 +8,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import {GPv2Order} from "@cow-protocol/contracts/libraries/GPv2Order.sol";
 import {GPv2Settlement} from "@cow-protocol/contracts/GPv2Settlement.sol";
 
-enum OrderType { SELL, BUY }
+enum OrderType { BUY, SELL }
 
 contract CowAnywhere {
     using SafeERC20 for IERC20;
@@ -16,6 +16,7 @@ contract CowAnywhere {
     using GPv2Order for bytes;
 
     event OrderSubmitted(address user, IERC20 fromToken, IERC20 toToken, uint256 orderAmount, OrderType orderType);
+    event OrderHash(bytes digest);
 
     mapping(address => uint128) public nonces;
     mapping(bytes32 => bool) public approvedOrders;
@@ -28,19 +29,21 @@ contract CowAnywhere {
     bytes32 internal constant domainSeparator = 0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943;
 
     function submitMarketSell(
+        address _receiver,
         IERC20 _sellToken, 
         IERC20 _buyToken,
         uint256 _sellAmount
     ) external {
-        _submitOrder(msg.sender, _sellToken, _buyToken, _sellAmount, OrderType.SELL);
+        _submitOrder(msg.sender, _receiver, _sellToken, _buyToken, _sellAmount, OrderType.SELL);
     }
 
     function submitMarketBuy(
+        address _receiver,
         IERC20 _sellToken,
         IERC20 _buyToken,
         uint256 _buyAmount
     ) external {
-        _submitOrder(msg.sender, _sellToken, _buyToken, _buyAmount, OrderType.BUY);
+        _submitOrder(msg.sender, _receiver, _sellToken, _buyToken, _buyAmount, OrderType.BUY);
     }
 
     // Called by a bot who has generated a UID via the API
@@ -56,6 +59,7 @@ contract CowAnywhere {
 
     function _submitOrder(
         address _user,
+        address _receiver,
         IERC20 _fromToken,
         IERC20 _toToken,
         uint256 _orderAmount,
@@ -64,7 +68,8 @@ contract CowAnywhere {
         
         uint128 _currentUserNonce = nonces[_user];
 
-        approvedOrders[keccak256(abi.encode(_user, 
+        approvedOrders[keccak256(abi.encode(_user,
+                                            _receiver,
                                             _fromToken, 
                                             _toToken, 
                                             _orderAmount, 
