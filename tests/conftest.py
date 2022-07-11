@@ -1,6 +1,7 @@
 from brownie import Contract
 import pytest
 
+
 @pytest.fixture
 def user(accounts):
     yield accounts[0]
@@ -10,11 +11,13 @@ def user(accounts):
 def deployer(accounts):
     yield accounts[1]
 
+
 @pytest.fixture
 def dai():
     token_address = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 
     yield Contract(token_address)
+
 
 @pytest.fixture
 def gno():
@@ -29,15 +32,18 @@ def wbtc():
 
     yield Contract(token_address)
 
+
 @pytest.fixture
 def wbtc_whale(accounts):
     address = "0xBF72Da2Bd84c5170618Fbe5914B0ECA9638d5eb5"
     yield accounts.at(address, force=True)
 
+
 @pytest.fixture
 def gno_whale(accounts):
     address = "0x4f8AD938eBA0CD19155a835f617317a6E788c868"
     yield accounts.at(address, force=True)
+
 
 @pytest.fixture
 def usdc():
@@ -52,11 +58,13 @@ def weth():
 
     yield Contract(token_address)
 
+
 @pytest.fixture
 def cow_anywhere(CowAnywhere, deployer):
     cow_anywhere = deployer.deploy(CowAnywhere)
 
     yield cow_anywhere
+
 
 @pytest.fixture
 def univ2_price_checker(UniV2PriceChecker, deployer):
