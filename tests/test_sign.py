@@ -57,7 +57,7 @@ def test_sign(
     )
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    cow_anywhere.signOrderUid(order_uid, order, user, univ2_price_checker)
+    tx = cow_anywhere.signOrderUid(order_uid, order, user, univ2_price_checker)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
 

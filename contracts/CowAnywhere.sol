@@ -29,7 +29,7 @@ contract CowAnywhere {
         address priceChecker
     );
 
-    mapping(address => uint128) public nonces;
+    mapping(address => uint256) public nonces;
     mapping(bytes32 => bool) public validSwapRequests;
 
     // Who we give allowance
@@ -52,7 +52,7 @@ contract CowAnywhere {
     ) external {
         _fromToken.transferFrom(msg.sender, address(this), _amountIn);
 
-        uint128 _currentUserNonce = nonces[msg.sender];
+        uint256 _currentUserNonce = nonces[msg.sender];
 
         validSwapRequests[
             keccak256(
@@ -70,7 +70,7 @@ contract CowAnywhere {
 
         // Assumption: relayer allowance always either 0 or so high that it will never need to be set again
         if (_fromToken.allowance(address(this), gnosisVaultRelayer) == 0) {
-            _fromToken.safeApprove(gnosisVaultRelayer, 2**255);
+            _fromToken.safeApprove(gnosisVaultRelayer, type(uint256).max);
         }
 
         emit SwapRequested(
@@ -103,7 +103,7 @@ contract CowAnywhere {
             "!digest_match"
         );
 
-        uint128 _currentUserNonce = nonces[_user];
+        uint256 _currentUserNonce = nonces[_user];
         require(
             validSwapRequests[
                 keccak256(
