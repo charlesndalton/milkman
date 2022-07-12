@@ -96,6 +96,8 @@ contract CowAnywhere {
         (bytes32 _orderDigestFromUid, address _owner, ) = _orderUid
             .extractOrderUidParams();
 
+        require(address(this) == _owner, "owner!=cow_anywhere");
+
         require(
             _orderDigestFromOrderDetails == _orderDigestFromUid,
             "!digest_match"
