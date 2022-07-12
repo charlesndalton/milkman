@@ -6,8 +6,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import {GPv2Order} from "@cow-protocol/contracts/libraries/GPv2Order.sol";
-import {GPv2Settlement} from "@cow-protocol/contracts/GPv2Settlement.sol";
 
+import {IGPv2Settlement} from "../interfaces/IGPv2Settlement.sol";
 import {IPriceChecker} from "../interfaces/IPriceChecker.sol";
 
 enum OrderType {
@@ -38,8 +38,8 @@ contract CowAnywhere {
     address internal constant gnosisVaultRelayer =
         0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
     // Where we pre-sign
-    GPv2Settlement internal constant settlement =
-        GPv2Settlement(0x9008D19f58AAbD9eD0D60971565AA8510560ab41);
+    IGPv2Settlement internal constant settlement =
+        IGPv2Settlement(0x9008D19f58AAbD9eD0D60971565AA8510560ab41);
     // Settlement's domain separator, used to hash order IDs
     bytes32 internal constant domainSeparator =
         0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943;
@@ -166,6 +166,4 @@ contract CowAnywhere {
 
         settlement.setPreSignature(_orderUid, true);
     }
-
-    // TODO: add cancel function
 }
