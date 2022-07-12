@@ -68,6 +68,11 @@ contract CowAnywhere {
             )
         ] = true;
 
+        // Assumption: relayer allowance always either 0 or so high that it will never need to be set again
+        if (_fromToken.allowance(address(this), gnosisVaultRelayer) == 0) {
+            _fromToken.safeApprove(gnosisVaultRelayer, 2**255);
+        }
+
         emit SwapRequested(
             msg.sender,
             _to,
