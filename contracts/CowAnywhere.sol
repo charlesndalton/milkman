@@ -29,6 +29,8 @@ contract CowAnywhere {
         address priceChecker
     );
 
+    event SwapCancelled(bytes32 swapID);
+
     mapping(address => uint256) public nonces;
     mapping(bytes32 => bool) public validSwapRequests;
 
@@ -81,6 +83,33 @@ contract CowAnywhere {
             _amountIn,
             _priceChecker
         );
+    }
+
+    function cancelSwap(
+        uint256 _amountIn,
+        IERC20 _fromToken,
+        IERC20 _toToken,
+        address _to,
+        address _priceChecker // used to verify that any UIDs passed in are setting reasonable minOuts. Set to 0 if you don't want.
+    ) external {
+        uint256 _currentUserNonce = nonces[msg.sender];
+        bytes32 _swapID = keccak256(
+            abi.encode(
+                msg.sender,
+                _to,
+                _fromToken,
+                _toToken,
+                _amountIn,
+                _priceChecker,
+                _currentUserNonce
+            )
+        );
+        require(validSwapRequests[_swapID], "!no_swap_request");
+        validSwapRequests[_swapID] = false;
+
+        _fromToken.safeTransfer(msg.sender, _amountIn);
+
+        emit SwapCancelled(_swapID);
     }
 
     // TODO: figure out compensation to keepers
