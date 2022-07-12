@@ -26,7 +26,8 @@ contract CowAnywhere {
         IERC20 fromToken,
         IERC20 toToken,
         uint256 amountIn,
-        address priceChecker
+        address priceChecker,
+        uint256 userNonce
     );
 
     event SwapCancelled(bytes32 swapID);
@@ -81,7 +82,8 @@ contract CowAnywhere {
             _fromToken,
             _toToken,
             _amountIn,
-            _priceChecker
+            _priceChecker,
+            _currentUserNonce
         );
     }
 
