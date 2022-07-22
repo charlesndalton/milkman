@@ -1,6 +1,7 @@
 from eth_abi import encode_abi
 from eth_utils import keccak
 import requests
+import brownie
 
 
 def test_sign(
@@ -122,6 +123,49 @@ def test_sign_multiple_sequentially(
         order_uid_1, gpv2_order_1, user, univ2_price_checker, 1
     )
     assert gnosis_settlement.preSignature(order_uid_1) != 0
+
+
+def test_replay_attack(
+    cow_anywhere,
+    user,
+    wbtc_whale,
+    wbtc,
+    dai,
+    chain,
+    gnosis_settlement,
+    univ2_price_checker,
+):
+    amount = 1e8  # 1 btc
+    wbtc.transfer(user, amount, {"from": wbtc_whale})
+
+    wbtc.approve(cow_anywhere, amount, {"from": user})
+
+    cow_anywhere.requestSwapExactTokensForTokens(
+        int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
+    )
+
+    (order_uid, order_payload) = cowswap_create_order_id(
+        chain, cow_anywhere, wbtc, dai, wbtc.balanceOf(cow_anywhere), user
+    )
+
+    gpv2_order = construct_gpv2_order(order_payload)
+
+    assert gnosis_settlement.preSignature(order_uid) == 0
+    tx = cow_anywhere.signOrderUid(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    assert gnosis_settlement.preSignature(order_uid) != 0
+
+    # try with same order
+    with brownie.reverts():
+        cow_anywhere.signOrderUid(order_uid, gpv2_order, user, univ2_price_checker, 0)
+
+    # try with new order
+    (order_uid, order_payload) = cowswap_create_order_id(
+        chain, cow_anywhere, wbtc, dai, wbtc.balanceOf(cow_anywhere), user
+    )
+    gpv2_order = construct_gpv2_order(order_payload)
+
+    with brownie.reverts():
+        cow_anywhere.signOrderUid(order_uid, gpv2_order, user, univ2_price_checker, 0)
 
 
 def construct_gpv2_order(order_payload):

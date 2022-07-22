@@ -149,6 +149,7 @@ contract CowAnywhere {
         );
 
         require(validSwapRequests[_swapID], "!no_swap_request");
+        validSwapRequests[_swapID] = false;
 
         if (_priceChecker != address(0)) {
             require(
