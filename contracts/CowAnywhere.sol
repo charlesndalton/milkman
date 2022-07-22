@@ -21,16 +21,17 @@ contract CowAnywhere {
     using GPv2Order for bytes;
 
     event SwapRequested(
+        bytes32 swapID,
         address user,
         address receiver,
         IERC20 fromToken,
         IERC20 toToken,
         uint256 amountIn,
         address priceChecker,
-        uint256 userNonce
+        uint256 nonce
     );
-
     event SwapCancelled(bytes32 swapID);
+    event SwapExecuted(bytes32 swapID);
 
     mapping(address => uint256) public nonces;
     mapping(bytes32 => bool) public validSwapRequests;
@@ -55,46 +56,14 @@ contract CowAnywhere {
     ) external {
         _fromToken.transferFrom(msg.sender, address(this), _amountIn);
 
-        uint256 _currentUserNonce = nonces[msg.sender];
-
-        validSwapRequests[
-            keccak256(
-                abi.encode(
-                    msg.sender,
-                    _to,
-                    _fromToken,
-                    _toToken,
-                    _amountIn,
-                    _priceChecker,
-                    _currentUserNonce
-                )
-            )
-        ] = true;
-
         // Assumption: relayer allowance always either 0 or so high that it will never need to be set again
         if (_fromToken.allowance(address(this), gnosisVaultRelayer) == 0) {
             _fromToken.safeApprove(gnosisVaultRelayer, type(uint256).max);
         }
 
-        emit SwapRequested(
-            msg.sender,
-            _to,
-            _fromToken,
-            _toToken,
-            _amountIn,
-            _priceChecker,
-            _currentUserNonce
-        );
-    }
+        uint256 _nonce = nonces[msg.sender];
+        nonces[msg.sender] += 1;
 
-    function cancelSwap(
-        uint256 _amountIn,
-        IERC20 _fromToken,
-        IERC20 _toToken,
-        address _to,
-        address _priceChecker // used to verify that any UIDs passed in are setting reasonable minOuts. Set to 0 if you don't want.
-    ) external {
-        uint256 _currentUserNonce = nonces[msg.sender];
         bytes32 _swapID = keccak256(
             abi.encode(
                 msg.sender,
@@ -103,7 +72,41 @@ contract CowAnywhere {
                 _toToken,
                 _amountIn,
                 _priceChecker,
-                _currentUserNonce
+                _nonce
+            )
+        );
+
+        validSwapRequests[_swapID] = true;
+
+        emit SwapRequested(
+            _swapID,
+            msg.sender,
+            _to,
+            _fromToken,
+            _toToken,
+            _amountIn,
+            _priceChecker,
+            _nonce
+        );
+    }
+
+    function cancelSwap(
+        uint256 _amountIn,
+        IERC20 _fromToken,
+        IERC20 _toToken,
+        address _to,
+        address _priceChecker,
+        uint256 _nonce
+    ) external {
+        bytes32 _swapID = keccak256(
+            abi.encode(
+                msg.sender,
+                _to,
+                _fromToken,
+                _toToken,
+                _amountIn,
+                _priceChecker,
+                _nonce
             )
         );
         require(validSwapRequests[_swapID], "!no_swap_request");
@@ -114,14 +117,13 @@ contract CowAnywhere {
         emit SwapCancelled(_swapID);
     }
 
-    // TODO: figure out compensation to keepers
-
     // Called by a bot who has generated a UID via the API
     function signOrderUid(
         bytes calldata _orderUid,
         GPv2Order.Data calldata _order,
         address _user,
-        address _priceChecker
+        address _priceChecker,
+        uint256 _nonce
     ) external {
         bytes32 _orderDigestFromOrderDetails = _order.hash(domainSeparator);
         (bytes32 _orderDigestFromUid, address _owner, ) = _orderUid
@@ -134,23 +136,19 @@ contract CowAnywhere {
             "!digest_match"
         );
 
-        uint256 _currentUserNonce = nonces[_user];
-        require(
-            validSwapRequests[
-                keccak256(
-                    abi.encode(
-                        _user,
-                        _order.receiver,
-                        _order.sellToken,
-                        _order.buyToken,
-                        _order.sellAmount + _order.feeAmount, // do we need to worry about fee manipulation?
-                        _priceChecker,
-                        _currentUserNonce
-                    )
-                )
-            ],
-            "!no_swap_request"
+        bytes32 _swapID = keccak256(
+            abi.encode(
+                _user,
+                _order.receiver,
+                _order.sellToken,
+                _order.buyToken,
+                _order.sellAmount + _order.feeAmount, // do we need to worry about fee manipulation?
+                _priceChecker,
+                _nonce
+            )
         );
+
+        require(validSwapRequests[_swapID], "!no_swap_request");
 
         if (_priceChecker != address(0)) {
             require(
@@ -163,8 +161,6 @@ contract CowAnywhere {
                 "invalid_min_out"
             );
         }
-
-        nonces[_user] += 1;
 
         settlement.setPreSignature(_orderUid, true);
     }

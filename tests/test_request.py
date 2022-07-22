@@ -14,6 +14,8 @@ def test_request_swap(cow_anywhere, user, gno_whale, gno, dai, univ2_price_check
 
     assert tx.events.count("SwapRequested") == 1
 
+    assert cow_anywhere.nonces(user) == 1
+
     # user, receiver, from_token, to_token, amount_in, price_checker, nonce
     encoded_market_order = encode_abi(
         ["address", "address", "address", "address", "uint256", "address", "uint256"],

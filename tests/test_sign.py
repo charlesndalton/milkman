@@ -26,6 +26,105 @@ def test_sign(
         chain, cow_anywhere, wbtc, dai, wbtc.balanceOf(cow_anywhere), user
     )
 
+    gpv2_order = construct_gpv2_order(order_payload)
+
+    assert gnosis_settlement.preSignature(order_uid) == 0
+    tx = cow_anywhere.signOrderUid(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    assert gnosis_settlement.preSignature(order_uid) != 0
+
+
+def test_sign_multiple_at_once(
+    cow_anywhere,
+    user,
+    wbtc_whale,
+    wbtc,
+    dai,
+    chain,
+    gnosis_settlement,
+    univ2_price_checker,
+):
+    amount = 1e8  # 1 btc
+    wbtc.transfer(user, amount, {"from": wbtc_whale})
+
+    wbtc.approve(cow_anywhere, amount, {"from": user})
+
+    amount_0 = int(amount * 0.6)
+    amount_1 = int(amount * 0.4)
+
+    cow_anywhere.requestSwapExactTokensForTokens(
+        amount_0, wbtc, dai, user, univ2_price_checker, {"from": user}
+    )
+    cow_anywhere.requestSwapExactTokensForTokens(
+        amount_1, wbtc, dai, user, univ2_price_checker, {"from": user}
+    )
+
+    (order_uid_0, order_payload_0) = cowswap_create_order_id(
+        chain, cow_anywhere, wbtc, dai, amount_0, user
+    )
+    (order_uid_1, order_payload_1) = cowswap_create_order_id(
+        chain, cow_anywhere, wbtc, dai, amount_1, user
+    )
+    gpv2_order_0 = construct_gpv2_order(order_payload_0)
+    gpv2_order_1 = construct_gpv2_order(order_payload_1)
+
+    assert gnosis_settlement.preSignature(order_uid_0) == 0
+    assert gnosis_settlement.preSignature(order_uid_1) == 0
+    tx0 = cow_anywhere.signOrderUid(
+        order_uid_0, gpv2_order_0, user, univ2_price_checker, 0
+    )
+    tx1 = cow_anywhere.signOrderUid(
+        order_uid_1, gpv2_order_1, user, univ2_price_checker, 1
+    )
+    assert gnosis_settlement.preSignature(order_uid_0) != 0
+    assert gnosis_settlement.preSignature(order_uid_1) != 0
+
+
+def test_sign_multiple_sequentially(
+    cow_anywhere,
+    user,
+    wbtc_whale,
+    wbtc,
+    dai,
+    chain,
+    gnosis_settlement,
+    univ2_price_checker,
+):
+    amount = 1e8  # 1 btc
+    wbtc.transfer(user, amount, {"from": wbtc_whale})
+
+    wbtc.approve(cow_anywhere, amount, {"from": user})
+
+    amount_0 = int(amount * 0.6)
+    amount_1 = int(amount * 0.4)
+
+    cow_anywhere.requestSwapExactTokensForTokens(
+        amount_0, wbtc, dai, user, univ2_price_checker, {"from": user}
+    )
+    (order_uid_0, order_payload_0) = cowswap_create_order_id(
+        chain, cow_anywhere, wbtc, dai, amount_0, user
+    )
+    gpv2_order_0 = construct_gpv2_order(order_payload_0)
+    assert gnosis_settlement.preSignature(order_uid_0) == 0
+    tx0 = cow_anywhere.signOrderUid(
+        order_uid_0, gpv2_order_0, user, univ2_price_checker, 0
+    )
+    assert gnosis_settlement.preSignature(order_uid_0) != 0
+
+    cow_anywhere.requestSwapExactTokensForTokens(
+        amount_1, wbtc, dai, user, univ2_price_checker, {"from": user}
+    )
+    (order_uid_1, order_payload_1) = cowswap_create_order_id(
+        chain, cow_anywhere, wbtc, dai, amount_1, user
+    )
+    gpv2_order_1 = construct_gpv2_order(order_payload_1)
+    assert gnosis_settlement.preSignature(order_uid_1) == 0
+    tx1 = cow_anywhere.signOrderUid(
+        order_uid_1, gpv2_order_1, user, univ2_price_checker, 1
+    )
+    assert gnosis_settlement.preSignature(order_uid_1) != 0
+
+
+def construct_gpv2_order(order_payload):
     # struct Data {
     #     IERC20 sellToken;
     #     IERC20 buyToken;
@@ -40,11 +139,10 @@ def test_sign(
     #     bytes32 sellTokenBalance;
     #     bytes32 buyTokenBalance;
     # }
-
     order = (
-        wbtc.address,
-        dai.address,
-        user.address,
+        order_payload["sellToken"],
+        order_payload["buyToken"],
+        order_payload["receiver"],
         int(order_payload["sellAmount"]),
         int(order_payload["buyAmount"]),
         order_payload["validTo"],
@@ -56,9 +154,7 @@ def test_sign(
         "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",
     )
 
-    assert gnosis_settlement.preSignature(order_uid) == 0
-    tx = cow_anywhere.signOrderUid(order_uid, order, user, univ2_price_checker)
-    assert gnosis_settlement.preSignature(order_uid) != 0
+    return order
 
 
 def cowswap_create_order_id(
