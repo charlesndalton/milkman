@@ -5,7 +5,7 @@ import brownie
 
 
 def test_sign(
-    cow_anywhere,
+    milkman,
     user,
     wbtc_whale,
     wbtc,
@@ -17,25 +17,25 @@ def test_sign(
     amount = 1e8  # 1 btc
     wbtc.transfer(user, amount, {"from": wbtc_whale})
 
-    wbtc.approve(cow_anywhere, amount, {"from": user})
+    wbtc.approve(milkman, amount, {"from": user})
 
-    cow_anywhere.requestSwapExactTokensForTokens(
+    milkman.requestSwapExactTokensForTokens(
         int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
     )
 
     (order_uid, order_payload) = cowswap_create_order_id(
-        chain, cow_anywhere, wbtc, dai, wbtc.balanceOf(cow_anywhere), user
+        chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user
     )
 
     gpv2_order = construct_gpv2_order(order_payload)
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    tx = cow_anywhere.signOrderUid(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    tx = milkman.signOrderUid(order_uid, gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
 
 def test_sign_multiple_at_once(
-    cow_anywhere,
+    milkman,
     user,
     wbtc_whale,
     wbtc,
@@ -47,33 +47,33 @@ def test_sign_multiple_at_once(
     amount = 1e8  # 1 btc
     wbtc.transfer(user, amount, {"from": wbtc_whale})
 
-    wbtc.approve(cow_anywhere, amount, {"from": user})
+    wbtc.approve(milkman, amount, {"from": user})
 
     amount_0 = int(amount * 0.6)
     amount_1 = int(amount * 0.4)
 
-    cow_anywhere.requestSwapExactTokensForTokens(
+    milkman.requestSwapExactTokensForTokens(
         amount_0, wbtc, dai, user, univ2_price_checker, {"from": user}
     )
-    cow_anywhere.requestSwapExactTokensForTokens(
+    milkman.requestSwapExactTokensForTokens(
         amount_1, wbtc, dai, user, univ2_price_checker, {"from": user}
     )
 
     (order_uid_0, order_payload_0) = cowswap_create_order_id(
-        chain, cow_anywhere, wbtc, dai, amount_0, user
+        chain, milkman, wbtc, dai, amount_0, user
     )
     (order_uid_1, order_payload_1) = cowswap_create_order_id(
-        chain, cow_anywhere, wbtc, dai, amount_1, user
+        chain, milkman, wbtc, dai, amount_1, user
     )
     gpv2_order_0 = construct_gpv2_order(order_payload_0)
     gpv2_order_1 = construct_gpv2_order(order_payload_1)
 
     assert gnosis_settlement.preSignature(order_uid_0) == 0
     assert gnosis_settlement.preSignature(order_uid_1) == 0
-    tx0 = cow_anywhere.signOrderUid(
+    tx0 = milkman.signOrderUid(
         order_uid_0, gpv2_order_0, user, univ2_price_checker, 0
     )
-    tx1 = cow_anywhere.signOrderUid(
+    tx1 = milkman.signOrderUid(
         order_uid_1, gpv2_order_1, user, univ2_price_checker, 1
     )
     assert gnosis_settlement.preSignature(order_uid_0) != 0
@@ -81,7 +81,7 @@ def test_sign_multiple_at_once(
 
 
 def test_sign_multiple_sequentially(
-    cow_anywhere,
+    milkman,
     user,
     wbtc_whale,
     wbtc,
@@ -93,40 +93,40 @@ def test_sign_multiple_sequentially(
     amount = 1e8  # 1 btc
     wbtc.transfer(user, amount, {"from": wbtc_whale})
 
-    wbtc.approve(cow_anywhere, amount, {"from": user})
+    wbtc.approve(milkman, amount, {"from": user})
 
     amount_0 = int(amount * 0.6)
     amount_1 = int(amount * 0.4)
 
-    cow_anywhere.requestSwapExactTokensForTokens(
+    milkman.requestSwapExactTokensForTokens(
         amount_0, wbtc, dai, user, univ2_price_checker, {"from": user}
     )
     (order_uid_0, order_payload_0) = cowswap_create_order_id(
-        chain, cow_anywhere, wbtc, dai, amount_0, user
+        chain, milkman, wbtc, dai, amount_0, user
     )
     gpv2_order_0 = construct_gpv2_order(order_payload_0)
     assert gnosis_settlement.preSignature(order_uid_0) == 0
-    tx0 = cow_anywhere.signOrderUid(
+    tx0 = milkman.signOrderUid(
         order_uid_0, gpv2_order_0, user, univ2_price_checker, 0
     )
     assert gnosis_settlement.preSignature(order_uid_0) != 0
 
-    cow_anywhere.requestSwapExactTokensForTokens(
+    milkman.requestSwapExactTokensForTokens(
         amount_1, wbtc, dai, user, univ2_price_checker, {"from": user}
     )
     (order_uid_1, order_payload_1) = cowswap_create_order_id(
-        chain, cow_anywhere, wbtc, dai, amount_1, user
+        chain, milkman, wbtc, dai, amount_1, user
     )
     gpv2_order_1 = construct_gpv2_order(order_payload_1)
     assert gnosis_settlement.preSignature(order_uid_1) == 0
-    tx1 = cow_anywhere.signOrderUid(
+    tx1 = milkman.signOrderUid(
         order_uid_1, gpv2_order_1, user, univ2_price_checker, 1
     )
     assert gnosis_settlement.preSignature(order_uid_1) != 0
 
 
 def test_replay_attack(
-    cow_anywhere,
+    milkman,
     user,
     wbtc_whale,
     wbtc,
@@ -138,34 +138,34 @@ def test_replay_attack(
     amount = 1e8  # 1 btc
     wbtc.transfer(user, amount, {"from": wbtc_whale})
 
-    wbtc.approve(cow_anywhere, amount, {"from": user})
+    wbtc.approve(milkman, amount, {"from": user})
 
-    cow_anywhere.requestSwapExactTokensForTokens(
+    milkman.requestSwapExactTokensForTokens(
         int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
     )
 
     (order_uid, order_payload) = cowswap_create_order_id(
-        chain, cow_anywhere, wbtc, dai, wbtc.balanceOf(cow_anywhere), user
+        chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user
     )
 
     gpv2_order = construct_gpv2_order(order_payload)
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    tx = cow_anywhere.signOrderUid(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    tx = milkman.signOrderUid(order_uid, gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
     # try with same order
     with brownie.reverts():
-        cow_anywhere.signOrderUid(order_uid, gpv2_order, user, univ2_price_checker, 0)
+        milkman.signOrderUid(order_uid, gpv2_order, user, univ2_price_checker, 0)
 
     # try with new order
     (order_uid, order_payload) = cowswap_create_order_id(
-        chain, cow_anywhere, wbtc, dai, wbtc.balanceOf(cow_anywhere), user
+        chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user
     )
     gpv2_order = construct_gpv2_order(order_payload)
 
     with brownie.reverts():
-        cow_anywhere.signOrderUid(order_uid, gpv2_order, user, univ2_price_checker, 0)
+        milkman.signOrderUid(order_uid, gpv2_order, user, univ2_price_checker, 0)
 
 
 def construct_gpv2_order(order_payload):
@@ -202,7 +202,7 @@ def construct_gpv2_order(order_payload):
 
 
 def cowswap_create_order_id(
-    chain, cow_anywhere, sell_token, buy_token, amount, receiver
+    chain, milkman, sell_token, buy_token, amount, receiver
 ):
     # get the fee + the buy amount after fee
     fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/sell"
@@ -242,8 +242,8 @@ def cowswap_create_order_id(
         "kind": "sell",
         "partiallyFillable": False,
         "receiver": receiver.address,
-        "signature": cow_anywhere.address,
-        "from": cow_anywhere.address,
+        "signature": milkman.address,
+        "from": milkman.address,
         "sellTokenBalance": "erc20",
         "buyTokenBalance": "erc20",
         "signingScheme": "presign",  # Very important. this tells the api you are going to sign on chain

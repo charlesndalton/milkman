@@ -60,10 +60,10 @@ def weth():
 
 
 @pytest.fixture
-def cow_anywhere(CowAnywhere, deployer):
-    cow_anywhere = deployer.deploy(CowAnywhere)
+def milkman(Milkman, deployer):
+    milkman = deployer.deploy(Milkman)
 
-    yield cow_anywhere
+    yield milkman
 
 
 @pytest.fixture

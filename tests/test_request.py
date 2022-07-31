@@ -2,19 +2,19 @@ from eth_abi import encode_abi
 from eth_utils import keccak
 
 
-def test_request_swap(cow_anywhere, user, gno_whale, gno, dai, univ2_price_checker):
+def test_request_swap(milkman, user, gno_whale, gno, dai, univ2_price_checker):
     amount = 100e18
     gno.transfer(user, amount, {"from": gno_whale})
 
-    gno.approve(cow_anywhere, amount, {"from": user})
+    gno.approve(milkman, amount, {"from": user})
 
-    tx = cow_anywhere.requestSwapExactTokensForTokens(
+    tx = milkman.requestSwapExactTokensForTokens(
         int(amount), gno, dai, user, univ2_price_checker, {"from": user}
     )
 
     assert tx.events.count("SwapRequested") == 1
 
-    assert cow_anywhere.nonces(user) == 1
+    assert milkman.nonce() == 1
 
     # user, receiver, from_token, to_token, amount_in, price_checker, nonce
     encoded_market_order = encode_abi(
@@ -29,4 +29,15 @@ def test_request_swap(cow_anywhere, user, gno_whale, gno, dai, univ2_price_check
             0,
         ],
     )
-    assert cow_anywhere.validSwapRequests(keccak(encoded_market_order))
+    swap_id = keccak(encoded_market_order)
+    swap_data = milkman.swaps(swap_id)
+
+    swap_requested_data = encode_abi(
+        ["uint256"],
+        [int(1)]
+    )
+    
+    print(f"Swap Data: {swap_data}")
+    print(f"Swap Requested Data: {swap_requested_data}")
+    assert swap_data.hex() == swap_requested_data.hex()
+    
