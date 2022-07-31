@@ -32,8 +32,8 @@ contract Milkman {
     event SwapExecuted(bytes32 swapID);
 
     // global nonce that is incremented after every swap request
-    uint256 public nonce;
-    // map swap ID => bytes(0) if not active, bytes(1) if requested but not paired, and packed blockNumber,orderUID if paired
+    uint256 public nonce = 0;
+    // map swap ID => empty if not active, bytes(1) if requested but not paired, and packed blockNumber,orderUID if paired
     mapping(bytes32 => bytes) public swaps;
 
     // Who we give allowance
@@ -90,6 +90,12 @@ contract Milkman {
         );
     }
 
+    function getData(bytes32 _swapID) external view returns (uint256, bytes1) {
+        bytes memory _swapData = swaps[_swapID];
+
+        return (_swapData.length, _swapData[0]);
+    }
+
     // Called by a bot who has generated a UID via the API
     function pairSwap(
         bytes calldata _orderUid,
@@ -120,7 +126,7 @@ contract Milkman {
 
         bytes memory _swapData = swaps[_swapID];
         require(
-            _swapData.length == 1 && _swapData[0] == bytes1(uint8(1)),
+            _swapData.length == 32 && _swapData[31] == bytes1(uint8(1)),
             "!swap_requested"
         );
 
