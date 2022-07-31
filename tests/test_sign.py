@@ -70,12 +70,8 @@ def test_sign_multiple_at_once(
 
     assert gnosis_settlement.preSignature(order_uid_0) == 0
     assert gnosis_settlement.preSignature(order_uid_1) == 0
-    tx0 = milkman.signOrderUid(
-        order_uid_0, gpv2_order_0, user, univ2_price_checker, 0
-    )
-    tx1 = milkman.signOrderUid(
-        order_uid_1, gpv2_order_1, user, univ2_price_checker, 1
-    )
+    tx0 = milkman.signOrderUid(order_uid_0, gpv2_order_0, user, univ2_price_checker, 0)
+    tx1 = milkman.signOrderUid(order_uid_1, gpv2_order_1, user, univ2_price_checker, 1)
     assert gnosis_settlement.preSignature(order_uid_0) != 0
     assert gnosis_settlement.preSignature(order_uid_1) != 0
 
@@ -106,9 +102,7 @@ def test_sign_multiple_sequentially(
     )
     gpv2_order_0 = construct_gpv2_order(order_payload_0)
     assert gnosis_settlement.preSignature(order_uid_0) == 0
-    tx0 = milkman.signOrderUid(
-        order_uid_0, gpv2_order_0, user, univ2_price_checker, 0
-    )
+    tx0 = milkman.signOrderUid(order_uid_0, gpv2_order_0, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid_0) != 0
 
     milkman.requestSwapExactTokensForTokens(
@@ -119,9 +113,7 @@ def test_sign_multiple_sequentially(
     )
     gpv2_order_1 = construct_gpv2_order(order_payload_1)
     assert gnosis_settlement.preSignature(order_uid_1) == 0
-    tx1 = milkman.signOrderUid(
-        order_uid_1, gpv2_order_1, user, univ2_price_checker, 1
-    )
+    tx1 = milkman.signOrderUid(order_uid_1, gpv2_order_1, user, univ2_price_checker, 1)
     assert gnosis_settlement.preSignature(order_uid_1) != 0
 
 
@@ -201,9 +193,7 @@ def construct_gpv2_order(order_payload):
     return order
 
 
-def cowswap_create_order_id(
-    chain, milkman, sell_token, buy_token, amount, receiver
-):
+def cowswap_create_order_id(chain, milkman, sell_token, buy_token, amount, receiver):
     # get the fee + the buy amount after fee
     fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/sell"
     get_params = {

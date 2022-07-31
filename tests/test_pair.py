@@ -3,6 +3,7 @@ from eth_utils import keccak
 import requests
 import brownie
 
+
 def test_pair(
     milkman,
     user,
@@ -53,16 +54,26 @@ def test_pair_parameter_mismatch(
     )
 
     (order_uid, order_payload) = cowswap_create_order_id(
-        chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), wbtc_whale # try to set the whale as the receiver
+        chain,
+        milkman,
+        wbtc,
+        dai,
+        wbtc.balanceOf(milkman),
+        wbtc_whale,  # try to set the whale as the receiver
     )
 
     gpv2_order = construct_gpv2_order(order_payload)
 
     with brownie.reverts():
         milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
-    
+
     (order_uid, order_payload) = cowswap_create_order_id(
-        chain, wbtc_whale, wbtc, dai, wbtc.balanceOf(milkman), user # try to set the whale as the owner
+        chain,
+        wbtc_whale,
+        wbtc,
+        dai,
+        wbtc.balanceOf(milkman),
+        user,  # try to set the whale as the owner
     )
 
     gpv2_order = construct_gpv2_order(order_payload)
@@ -82,8 +93,6 @@ def test_pair_parameter_mismatch(
     milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
-    
-    
 
 def construct_gpv2_order(order_payload):
     # struct Data {
@@ -118,9 +127,7 @@ def construct_gpv2_order(order_payload):
     return order
 
 
-def cowswap_create_order_id(
-    chain, milkman, sell_token, buy_token, amount, receiver
-):
+def cowswap_create_order_id(chain, milkman, sell_token, buy_token, amount, receiver):
     # get the fee + the buy amount after fee
     fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/sell"
     get_params = {
