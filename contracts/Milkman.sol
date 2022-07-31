@@ -90,12 +90,6 @@ contract Milkman {
         );
     }
 
-    function getData(bytes32 _swapID) external view returns (uint256, bytes1) {
-        bytes memory _swapData = swaps[_swapID];
-
-        return (_swapData.length, _swapData[0]);
-    }
-
     // Called by a bot who has generated a UID via the API
     function pairSwap(
         bytes calldata _orderUid,
