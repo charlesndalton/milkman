@@ -48,7 +48,7 @@ contract Milkman {
 
     bytes32 internal constant KIND_SELL =
         hex"f3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775";
-    
+
     // Request to asynchronously swap exact tokens for market value of other tokens through CoW Protocol
     function requestSwapExactTokensForTokens(
         uint256 _amountIn,
@@ -125,6 +125,11 @@ contract Milkman {
         require(
             _swapData.length == 32 && _swapData[31] == bytes1(uint8(1)),
             "!swap_requested"
+        );
+
+        require(
+            _order.kind == KIND_SELL,
+            "!kind_sell"
         );
 
         swaps[_swapID] = abi.encode(block.number, _orderUid);
