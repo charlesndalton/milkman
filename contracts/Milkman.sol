@@ -151,6 +151,8 @@ contract Milkman {
         }
 
         settlement.setPreSignature(_orderUid, true);
+
+        emit SwapPaired(_swapID, _orderUid, block.number);
     }
 
     // prove that a paired swap hasn't been executed in 50 blocks
@@ -170,6 +172,8 @@ contract Milkman {
         settlement.setPreSignature(_orderUid, false);
 
         swaps[_swapID] = abi.encode(1);
+
+        emit SwapUnpaired(_swapID);
     }
 
     // prove that a paired swap has been exec'ed by the CoW protocol
@@ -182,5 +186,7 @@ contract Milkman {
         require(settlement.filledAmount(_orderUid) != 0, "!executed");
 
         delete swaps[_swapID];
+
+        emit SwapExecuted(_swapID);
     }
 }
