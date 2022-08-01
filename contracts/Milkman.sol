@@ -46,6 +46,9 @@ contract Milkman {
     bytes32 internal constant domainSeparator =
         0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943;
 
+    bytes32 internal constant KIND_SELL =
+        hex"f3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775";
+    
     // Request to asynchronously swap exact tokens for market value of other tokens through CoW Protocol
     function requestSwapExactTokensForTokens(
         uint256 _amountIn,
@@ -112,7 +115,7 @@ contract Milkman {
                 _order.receiver,
                 _order.sellToken,
                 _order.buyToken,
-                _order.sellAmount + _order.feeAmount, // do we need to worry about fee manipulation?
+                _order.sellAmount + _order.feeAmount,
                 _priceChecker,
                 _nonce
             )
@@ -129,7 +132,7 @@ contract Milkman {
         if (_priceChecker != address(0)) {
             require(
                 IPriceChecker(_priceChecker).checkPrice(
-                    _order.sellAmount,
+                    _order.sellAmount + _order.feeAmount,
                     address(_order.sellToken),
                     address(_order.buyToken),
                     _order.buyAmount
