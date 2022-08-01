@@ -149,7 +149,7 @@ contract Milkman {
         );
 
         require(
-            block.number <= _blockNumberWhenPaired + 50 &&
+            block.number >= _blockNumberWhenPaired + 50 &&
                 settlement.filledAmount(_orderUid) == 0 &&
                 _blockNumberWhenPaired != 0, // last check to ensure that the swap exists at all
             "!unpairable"
