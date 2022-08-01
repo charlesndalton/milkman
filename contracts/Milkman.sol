@@ -49,6 +49,8 @@ contract Milkman {
     bytes32 internal constant KIND_SELL =
         hex"f3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775";
 
+    uint32 internal constant FIVE_MINUTES_IN_SECONDS = 300;
+
     // Request to asynchronously swap exact tokens for market value of other tokens through CoW Protocol
     function requestSwapExactTokensForTokens(
         uint256 _amountIn,
@@ -128,6 +130,11 @@ contract Milkman {
         );
 
         require(_order.kind == KIND_SELL, "!kind_sell");
+
+        require(
+            _order.validTo >= block.timestamp + FIVE_MINUTES_IN_SECONDS,
+            "expires_too_soon"
+        );
 
         swaps[_swapID] = abi.encode(block.number, _orderUid);
 
