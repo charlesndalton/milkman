@@ -50,15 +50,15 @@ def test_pair_multiple_swaps(
     wbtc.approve(milkman, amount, {"from": user})
 
     milkman.requestSwapExactTokensForTokens(
-        int(amount/2), wbtc, dai, user, univ2_price_checker, {"from": user}
+        int(amount / 2), wbtc, dai, user, univ2_price_checker, {"from": user}
     )
 
     milkman.requestSwapExactTokensForTokens(
-        int(amount/2), wbtc, dai, user, univ2_price_checker, {"from": user}
+        int(amount / 2), wbtc, dai, user, univ2_price_checker, {"from": user}
     )
 
     (order_uid, order_payload) = cowswap_create_order_id(
-        chain, milkman, wbtc, dai, int(amount/2), user, 100
+        chain, milkman, wbtc, dai, int(amount / 2), user, 100
     )
 
     gpv2_order = construct_gpv2_order(order_payload)
@@ -68,7 +68,7 @@ def test_pair_multiple_swaps(
     assert gnosis_settlement.preSignature(order_uid) != 0
 
     (order_uid, order_payload) = cowswap_create_order_id(
-        chain, milkman, wbtc, dai, int(amount/2), user, 100
+        chain, milkman, wbtc, dai, int(amount / 2), user, 100
     )
 
     gpv2_order = construct_gpv2_order(order_payload)
@@ -76,6 +76,7 @@ def test_pair_multiple_swaps(
     assert gnosis_settlement.preSignature(order_uid) == 0
     milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 1)
     assert gnosis_settlement.preSignature(order_uid) != 0
+
 
 def test_pair_parameter_mismatch(
     milkman,
@@ -103,7 +104,7 @@ def test_pair_parameter_mismatch(
         dai,
         wbtc.balanceOf(milkman),
         wbtc_whale,  # try to set the whale as the receiver
-        100
+        100,
     )
 
     gpv2_order = construct_gpv2_order(order_payload)
@@ -118,7 +119,7 @@ def test_pair_parameter_mismatch(
         dai,
         wbtc.balanceOf(milkman),
         user,  # try to set the whale as the owner
-        100
+        100,
     )
 
     gpv2_order = construct_gpv2_order(order_payload)
@@ -159,7 +160,13 @@ def test_pair_bad_min_out(
     )
 
     (order_uid, order_payload) = cowswap_create_order_id(
-        chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user, 5000 # 50% slippage allowed, which shouldn't pass
+        chain,
+        milkman,
+        wbtc,
+        dai,
+        wbtc.balanceOf(milkman),
+        user,
+        5000,  # 50% slippage allowed, which shouldn't pass
     )
 
     gpv2_order = construct_gpv2_order(order_payload)
@@ -212,9 +219,7 @@ def test_pair_buy_to_sell(
     # These two values are needed to create an order
     fee_amount = int(r.json()["fee"]["amount"])
     buy_amount_after_fee = int(r.json()["buyAmountAfterFee"])
-    buy_amount_after_fee_with_slippage = int(
-        buy_amount_after_fee * 0.99
-    )  # 1% slippage
+    buy_amount_after_fee_with_slippage = int(buy_amount_after_fee * 0.99)  # 1% slippage
     assert fee_amount > 0
     assert buy_amount_after_fee_with_slippage > 0
 
@@ -279,6 +284,7 @@ def test_pair_buy_to_sell(
     milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
+
 def construct_gpv2_order(order_payload):
     # struct Data {
     #     IERC20 sellToken;
@@ -312,7 +318,9 @@ def construct_gpv2_order(order_payload):
     return order
 
 
-def cowswap_create_order_id(chain, milkman, sell_token, buy_token, amount, receiver, allowed_slippage_in_bips):
+def cowswap_create_order_id(
+    chain, milkman, sell_token, buy_token, amount, receiver, allowed_slippage_in_bips
+):
     # get the fee + the buy amount after fee
     fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/sell"
     get_params = {

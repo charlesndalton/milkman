@@ -127,10 +127,7 @@ contract Milkman {
             "!swap_requested"
         );
 
-        require(
-            _order.kind == KIND_SELL,
-            "!kind_sell"
-        );
+        require(_order.kind == KIND_SELL, "!kind_sell");
 
         swaps[_swapID] = abi.encode(block.number, _orderUid);
 

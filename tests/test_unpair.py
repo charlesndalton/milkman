@@ -53,7 +53,6 @@ def test_unpair(
     milkman.unpairSwap(swap_id)
 
 
-
 def test_unpair_not_enough_time_elapsed(
     milkman,
     user,
@@ -103,7 +102,6 @@ def test_unpair_not_enough_time_elapsed(
     with brownie.reverts("!unpairable"):
         milkman.unpairSwap(swap_id)
 
-    
     chain.mine(40)
 
     milkman.unpairSwap(swap_id)
@@ -142,7 +140,9 @@ def construct_gpv2_order(order_payload):
     return order
 
 
-def cowswap_create_order_id(chain, milkman, sell_token, buy_token, amount, receiver, allowed_slippage_in_bips):
+def cowswap_create_order_id(
+    chain, milkman, sell_token, buy_token, amount, receiver, allowed_slippage_in_bips
+):
     # get the fee + the buy amount after fee
     fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/sell"
     get_params = {
