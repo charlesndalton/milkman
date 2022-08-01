@@ -109,8 +109,6 @@ def test_unpair_not_enough_time_elapsed(
     milkman.unpairSwap(swap_id)
 
 
-
-
 def construct_gpv2_order(order_payload):
     # struct Data {
     #     IERC20 sellToken;
@@ -143,6 +141,7 @@ def construct_gpv2_order(order_payload):
 
     return order
 
+
 def test_unpair_and_pair_again(
     milkman,
     user,
@@ -173,7 +172,7 @@ def test_unpair_and_pair_again(
     assert gnosis_settlement.preSignature(order_uid) != 0
 
     chain.mine(51)
-    chain.sleep(5*60)
+    chain.sleep(5 * 60)
 
     # user, receiver, from_token, to_token, amount_in, price_checker, nonce
     encoded_market_order = encode_abi(
@@ -203,6 +202,7 @@ def test_unpair_and_pair_again(
     assert gnosis_settlement.preSignature(order_uid) == 0
     milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
+
 
 def cowswap_create_order_id(
     chain, milkman, sell_token, buy_token, amount, receiver, allowed_slippage_in_bips

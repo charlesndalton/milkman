@@ -136,6 +136,8 @@ contract Milkman {
             "expires_too_soon"
         );
 
+        require(!_order.partiallyFillable, "!fill_or_kill");
+
         swaps[_swapID] = abi.encode(block.number, _orderUid);
 
         if (_priceChecker != address(0)) {
