@@ -4,6 +4,7 @@ pragma abicoder v2;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
 import {GPv2Order} from "@cow-protocol/contracts/libraries/GPv2Order.sol";
 
@@ -14,6 +15,7 @@ contract Milkman {
     using SafeERC20 for IERC20;
     using GPv2Order for GPv2Order.Data;
     using GPv2Order for bytes;
+    using SafeMath for uint256;
 
     event SwapRequested(
         bytes32 swapID,
@@ -31,7 +33,7 @@ contract Milkman {
     event SwapExecuted(bytes32 swapID);
 
     // global nonce that is incremented after every swap request
-    uint256 public nonce = 0;
+    uint256 public nonce;
     // map swap ID => empty if not active, bytes(1) if requested but not paired, and packed blockNumber,orderUID if paired
     mapping(bytes32 => bytes) public swaps;
 
@@ -48,7 +50,11 @@ contract Milkman {
     bytes32 internal constant KIND_SELL =
         hex"f3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775";
 
-    uint32 internal constant FIVE_MINUTES_IN_SECONDS = 300;
+    bytes32 internal constant BALANCE_ERC20 =
+        hex"5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9";
+
+    /// @dev The byte length of an order unique identifier.
+    uint256 internal constant UID_LENGTH = 56;
 
     // Request to asynchronously swap exact tokens for market value of other tokens through CoW Protocol
     function requestSwapExactTokensForTokens(
@@ -58,7 +64,7 @@ contract Milkman {
         address _to,
         address _priceChecker // used to verify that any UIDs passed in are setting reasonable minOuts. Set to address 0 if you don't want.
     ) external {
-        _fromToken.transferFrom(msg.sender, address(this), _amountIn);
+        _fromToken.safeTransferFrom(msg.sender, address(this), _amountIn);
 
         // Assumption: relayer allowance always either 0 or so high that it will never need to be set again
         if (_fromToken.allowance(address(this), gnosisVaultRelayer) == 0) {
@@ -96,19 +102,20 @@ contract Milkman {
 
     // Called by a bot who has generated a UID via the API
     function pairSwap(
-        bytes calldata _orderUid,
         GPv2Order.Data calldata _order,
         address _user,
         address _priceChecker,
         uint256 _nonce
     ) external {
-        bytes32 _orderDigestFromOrderDetails = _order.hash(domainSeparator);
-        (bytes32 _orderDigestFromUid, address _owner, ) = _orderUid
-            .extractOrderUidParams();
+        bytes32 _orderDigest = _order.hash(domainSeparator);
 
-        require(address(this) == _owner, "owner!=milkman");
+        bytes memory _orderUid = new bytes(UID_LENGTH);
 
-        require(_orderDigestFromOrderDetails == _orderDigestFromUid, "!match");
+        _orderUid.packOrderUidParams(
+            _orderDigest,
+            address(this),
+            _order.validTo
+        );
 
         bytes32 _swapID = keccak256(
             abi.encode(
@@ -116,7 +123,7 @@ contract Milkman {
                 _order.receiver,
                 _order.sellToken,
                 _order.buyToken,
-                _order.sellAmount + _order.feeAmount,
+                _order.sellAmount.add(_order.feeAmount),
                 _priceChecker,
                 _nonce
             )
@@ -131,18 +138,24 @@ contract Milkman {
         require(_order.kind == KIND_SELL, "!kind_sell");
 
         require(
-            _order.validTo >= block.timestamp + FIVE_MINUTES_IN_SECONDS,
+            _order.validTo >= block.timestamp + 5 minutes,
             "expires_too_soon"
         );
 
         require(!_order.partiallyFillable, "!fill_or_kill");
+
+        require(_order.sellTokenBalance == BALANCE_ERC20, "!sell_erc20");
+
+        require(_order.buyTokenBalance == BALANCE_ERC20, "!buy_erc20");
+
+        require(settlement.filledAmount(_orderUid) == 0, "!unique");
 
         swaps[_swapID] = abi.encode(block.number, _orderUid);
 
         if (_priceChecker != address(0)) {
             require(
                 IPriceChecker(_priceChecker).checkPrice(
-                    _order.sellAmount + _order.feeAmount,
+                    _order.sellAmount.add(_order.feeAmount),
                     address(_order.sellToken),
                     address(_order.buyToken),
                     _order.buyAmount
@@ -178,6 +191,8 @@ contract Milkman {
     }
 
     // prove that a paired swap has been exec'ed by the CoW protocol
+    // this serves no standalone purpose but since it reverts on non-execution,
+    // it can be used for e.g., by a wrapper keep3r contract
     function proveExecuted(bytes32 _swapID) external {
         (, bytes memory _orderUid) = abi.decode(
             swaps[_swapID],

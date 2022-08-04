@@ -30,7 +30,7 @@ def test_pair(
     gpv2_order = construct_gpv2_order(order_payload)
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
 
@@ -64,7 +64,7 @@ def test_pair_multiple_swaps(
     gpv2_order = construct_gpv2_order(order_payload)
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
     (order_uid, order_payload) = cowswap_create_order_id(
@@ -74,69 +74,7 @@ def test_pair_multiple_swaps(
     gpv2_order = construct_gpv2_order(order_payload)
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 1)
-    assert gnosis_settlement.preSignature(order_uid) != 0
-
-
-def test_pair_parameter_mismatch(
-    milkman,
-    user,
-    wbtc_whale,
-    wbtc,
-    dai,
-    chain,
-    gnosis_settlement,
-    univ2_price_checker,
-):
-    amount = 1e8  # 1 btc
-    wbtc.transfer(user, amount, {"from": wbtc_whale})
-
-    wbtc.approve(milkman, amount, {"from": user})
-
-    milkman.requestSwapExactTokensForTokens(
-        int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
-    )
-
-    (order_uid, order_payload) = cowswap_create_order_id(
-        chain,
-        milkman,
-        wbtc,
-        dai,
-        wbtc.balanceOf(milkman),
-        wbtc_whale,  # try to set the whale as the receiver
-        100,
-    )
-
-    gpv2_order = construct_gpv2_order(order_payload)
-
-    with brownie.reverts():
-        milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
-
-    (order_uid, order_payload) = cowswap_create_order_id(
-        chain,
-        wbtc_whale,
-        wbtc,
-        dai,
-        wbtc.balanceOf(milkman),
-        user,  # try to set the whale as the owner
-        100,
-    )
-
-    gpv2_order = construct_gpv2_order(order_payload)
-
-    with brownie.reverts():
-        milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
-
-    # can still do it the correct way
-
-    (order_uid, order_payload) = cowswap_create_order_id(
-        chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user, 100
-    )
-
-    gpv2_order = construct_gpv2_order(order_payload)
-
-    assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 1)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
 
@@ -172,7 +110,7 @@ def test_pair_bad_min_out(
     gpv2_order = construct_gpv2_order(order_payload)
 
     with brownie.reverts("invalid_min_out"):
-        milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+        milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
 
     # can still do it the correct way
 
@@ -183,7 +121,7 @@ def test_pair_bad_min_out(
     gpv2_order = construct_gpv2_order(order_payload)
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
 
@@ -270,7 +208,7 @@ def test_pair_buy_to_sell(
     )
 
     with brownie.reverts("!kind_sell"):
-        milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+        milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
 
     # can still do it the correct way
 
@@ -281,7 +219,7 @@ def test_pair_buy_to_sell(
     gpv2_order = construct_gpv2_order(order_payload)
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
 
@@ -361,7 +299,7 @@ def test_pair_invalid_valid_to(
     )
 
     with brownie.reverts("expires_too_soon"):
-        milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+        milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
 
     # can still do it the correct way
 
@@ -372,7 +310,7 @@ def test_pair_invalid_valid_to(
     gpv2_order = construct_gpv2_order(order_payload)
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
 
@@ -453,7 +391,7 @@ def test_pair_invalid_valid_to(
 #     )
 
 #     with brownie.reverts("!fill_or_kill"):
-#         milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+#         milkman.pairSwap( gpv2_order, user, univ2_price_checker, 0)
 
 #     # can still do it the correct way
 
@@ -464,7 +402,7 @@ def test_pair_invalid_valid_to(
 #     gpv2_order = construct_gpv2_order(order_payload)
 
 #     assert gnosis_settlement.preSignature(order_uid) == 0
-#     milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+#     milkman.pairSwap( gpv2_order, user, univ2_price_checker, 0)
 #     assert gnosis_settlement.preSignature(order_uid) != 0
 
 

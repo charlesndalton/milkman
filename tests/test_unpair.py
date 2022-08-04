@@ -30,7 +30,7 @@ def test_unpair(
     gpv2_order = construct_gpv2_order(order_payload)
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
     chain.mine(51)
@@ -81,7 +81,7 @@ def test_unpair_not_enough_time_elapsed(
     gpv2_order = construct_gpv2_order(order_payload)
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
     # user, receiver, from_token, to_token, amount_in, price_checker, nonce
@@ -168,7 +168,7 @@ def test_unpair_and_pair_again(
     gpv2_order = construct_gpv2_order(order_payload)
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
     chain.mine(51)
@@ -200,7 +200,7 @@ def test_unpair_and_pair_again(
     gpv2_order = construct_gpv2_order(order_payload)
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
 
@@ -250,7 +250,7 @@ def test_cannot_unpair_swap_that_hasnt_been_created(
     # can still go through normal flow
 
     assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(order_uid, gpv2_order, user, univ2_price_checker, 0)
+    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
     assert gnosis_settlement.preSignature(order_uid) != 0
 
     chain.mine(51)
