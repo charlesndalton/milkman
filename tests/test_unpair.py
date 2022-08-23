@@ -109,39 +109,6 @@ def test_unpair_not_enough_time_elapsed(
     milkman.unpairSwap(swap_id)
 
 
-def construct_gpv2_order(order_payload):
-    # struct Data {
-    #     IERC20 sellToken;
-    #     IERC20 buyToken;
-    #     address receiver;
-    #     uint256 sellAmount;
-    #     uint256 buyAmount;
-    #     uint32 validTo;
-    #     bytes32 appData;
-    #     uint256 feeAmount;
-    #     bytes32 kind;
-    #     bool partiallyFillable;
-    #     bytes32 sellTokenBalance;
-    #     bytes32 buyTokenBalance;
-    # }
-    order = (
-        order_payload["sellToken"],
-        order_payload["buyToken"],
-        order_payload["receiver"],
-        int(order_payload["sellAmount"]),
-        int(order_payload["buyAmount"]),
-        order_payload["validTo"],
-        order_payload["appData"],
-        int(order_payload["feeAmount"]),
-        "0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775",  # KIND_SELL
-        False,
-        "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",  # ERC20 BALANCE
-        "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",
-    )
-
-    return order
-
-
 def test_unpair_and_pair_again(
     milkman,
     user,
@@ -316,3 +283,36 @@ def cowswap_create_order_id(
     print(f"Order uid: {order_uid}")
 
     return (order_uid, order_payload)
+
+
+def construct_gpv2_order(order_payload):
+    # struct Data {
+    #     IERC20 sellToken;
+    #     IERC20 buyToken;
+    #     address receiver;
+    #     uint256 sellAmount;
+    #     uint256 buyAmount;
+    #     uint32 validTo;
+    #     bytes32 appData;
+    #     uint256 feeAmount;
+    #     bytes32 kind;
+    #     bool partiallyFillable;
+    #     bytes32 sellTokenBalance;
+    #     bytes32 buyTokenBalance;
+    # }
+    order = (
+        order_payload["sellToken"],
+        order_payload["buyToken"],
+        order_payload["receiver"],
+        int(order_payload["sellAmount"]),
+        int(order_payload["buyAmount"]),
+        order_payload["validTo"],
+        order_payload["appData"],
+        int(order_payload["feeAmount"]),
+        "0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775",  # KIND_SELL
+        False,
+        "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",  # ERC20 BALANCE
+        "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",
+    )
+
+    return order
