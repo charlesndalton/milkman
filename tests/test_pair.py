@@ -2,36 +2,38 @@ from eth_abi import encode_abi
 from eth_utils import keccak
 import requests
 import brownie
+import utils
 
 
 def test_pair(
+    chain,
     milkman,
     user,
-    wbtc_whale,
-    wbtc,
-    dai,
-    chain,
     gnosis_settlement,
+    token_to_sell,
+    token_to_buy,
+    amount,
     univ2_price_checker,
 ):
-    amount = 1e8  # 1 btc
-    wbtc.transfer(user, amount, {"from": wbtc_whale})
-
-    wbtc.approve(milkman, amount, {"from": user})
+    token_to_sell.approve(milkman, amount, {"from": user})
 
     milkman.requestSwapExactTokensForTokens(
-        int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
+        amount, token_to_sell, token_to_buy, user, univ2_price_checker, {"from": user}
     )
 
-    (order_uid, order_payload) = cowswap_create_order_id(
-        chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user, 100
+    utils.pair_swap(
+        chain,
+        gnosis_settlement,
+        milkman,
+        user,
+        user,
+        token_to_sell,
+        token_to_buy,
+        amount,
+        univ2_price_checker,
+        100,
+        0,
     )
-
-    gpv2_order = construct_gpv2_order(order_payload)
-
-    assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
-    assert gnosis_settlement.preSignature(order_uid) != 0
 
 
 def test_pair_multiple_swaps(
