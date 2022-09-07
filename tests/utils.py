@@ -3,6 +3,7 @@ import requests
 
 
 def pair_swap(
+    nonce,
     chain,
     gnosis_settlement,
     milkman,
@@ -10,10 +11,9 @@ def pair_swap(
     receiver,
     token_to_sell,
     token_to_buy,
-    amount_to_sell,
+    amount,
     price_checker,
     allowed_slippage_bps,
-    nonce,
 ):
     (order_uid, order_payload) = create_offchain_order(
         chain,
@@ -21,7 +21,7 @@ def pair_swap(
         receiver,
         token_to_sell,
         token_to_buy,
-        amount_to_sell,
+        amount,
         allowed_slippage_bps,
     )
 

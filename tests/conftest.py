@@ -7,12 +7,12 @@ def shared_setup(fn_isolation):
     pass
 
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def user(accounts):
     yield accounts[0]
 
 
-@pytest.fixture
+@pytest.fixture(scope="session", autouse=True)
 def deployer(accounts):
     yield accounts[1]
 
@@ -71,6 +71,7 @@ amounts = {
 def amount(token_to_sell, user, whale):
     amount = int(amounts[token_to_sell.symbol()] * 10 ** token_to_sell.decimals())
     token_to_sell.transfer(user, amount, {"from": whale})
+    print("token transferred")
 
     yield int(amount)
 
@@ -90,6 +91,17 @@ whale_address = {
 @pytest.fixture(scope="session", autouse=True)
 def whale(accounts, token_to_sell):
     yield accounts.at(whale_address[token_to_sell.symbol()], force=True)
+
+
+@pytest.fixture
+def price_checker(UniV2PriceChecker, deployer, token_to_sell):
+    univ2_price_checker = deployer.deploy(UniV2PriceChecker)
+    symbol = token_to_sell.symbol()
+
+    # yield univ2_price_checker
+
+    if symbol == "GNO":
+        yield univ2_price_checker
 
 
 @pytest.fixture
@@ -144,13 +156,6 @@ def milkman(Milkman, deployer):
     milkman = deployer.deploy(Milkman)
 
     yield milkman
-
-
-@pytest.fixture
-def univ2_price_checker(UniV2PriceChecker, deployer):
-    univ2_price_checker = deployer.deploy(UniV2PriceChecker)
-
-    yield univ2_price_checker
 
 
 @pytest.fixture

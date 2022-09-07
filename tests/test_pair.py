@@ -13,15 +13,16 @@ def test_pair(
     token_to_sell,
     token_to_buy,
     amount,
-    univ2_price_checker,
+    price_checker,
 ):
     token_to_sell.approve(milkman, amount, {"from": user})
 
     milkman.requestSwapExactTokensForTokens(
-        amount, token_to_sell, token_to_buy, user, univ2_price_checker, {"from": user}
+        amount, token_to_sell, token_to_buy, user, price_checker, {"from": user}
     )
 
     utils.pair_swap(
+        0,
         chain,
         gnosis_settlement,
         milkman,
@@ -30,295 +31,209 @@ def test_pair(
         token_to_sell,
         token_to_buy,
         amount,
-        univ2_price_checker,
+        price_checker,
         100,
-        0,
     )
 
 
 def test_pair_multiple_swaps(
+    chain,
     milkman,
     user,
-    wbtc_whale,
-    wbtc,
-    dai,
-    chain,
+    token_to_sell,
+    token_to_buy,
+    amount,
     gnosis_settlement,
-    univ2_price_checker,
+    price_checker,
 ):
-    amount = 1e8  # 1 btc
-    wbtc.transfer(user, amount, {"from": wbtc_whale})
+    token_to_sell.approve(milkman, amount, {"from": user})
 
-    wbtc.approve(milkman, amount, {"from": user})
-
-    milkman.requestSwapExactTokensForTokens(
-        int(amount / 2), wbtc, dai, user, univ2_price_checker, {"from": user}
-    )
+    amount_for_each = int(amount / 2)
 
     milkman.requestSwapExactTokensForTokens(
-        int(amount / 2), wbtc, dai, user, univ2_price_checker, {"from": user}
+        amount_for_each, token_to_sell, token_to_buy, user, price_checker, {"from": user}
     )
-
-    (order_uid, order_payload) = cowswap_create_order_id(
-        chain, milkman, wbtc, dai, int(amount / 2), user, 100
-    )
-
-    gpv2_order = construct_gpv2_order(order_payload)
-
-    assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
-    assert gnosis_settlement.preSignature(order_uid) != 0
-
-    (order_uid, order_payload) = cowswap_create_order_id(
-        chain, milkman, wbtc, dai, int(amount / 2), user, 100
-    )
-
-    gpv2_order = construct_gpv2_order(order_payload)
-
-    assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 1)
-    assert gnosis_settlement.preSignature(order_uid) != 0
-
-
-def test_pair_bad_min_out(
-    milkman,
-    user,
-    wbtc_whale,
-    wbtc,
-    dai,
-    chain,
-    gnosis_settlement,
-    univ2_price_checker,
-):
-    amount = 1e8  # 1 btc
-    wbtc.transfer(user, amount, {"from": wbtc_whale})
-
-    wbtc.approve(milkman, amount, {"from": user})
 
     milkman.requestSwapExactTokensForTokens(
-        int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
+        amount_for_each, token_to_sell, token_to_buy, user, price_checker, {"from": user}
     )
 
-    (order_uid, order_payload) = cowswap_create_order_id(
+    utils.pair_swap(
+        0,
         chain,
+        gnosis_settlement,
         milkman,
-        wbtc,
-        dai,
-        wbtc.balanceOf(milkman),
         user,
-        5000,  # 50% slippage allowed, which shouldn't pass
+        user,
+        token_to_sell,
+        token_to_buy,
+        amount_for_each,
+        price_checker,
+        100,
     )
 
-    gpv2_order = construct_gpv2_order(order_payload)
-
-    with brownie.reverts("invalid_min_out"):
-        milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
-
-    # can still do it the correct way
-
-    (order_uid, order_payload) = cowswap_create_order_id(
-        chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user, 100
+    utils.pair_swap(
+        1,
+        chain,
+        gnosis_settlement,
+        milkman,
+        user,
+        user,
+        token_to_sell,
+        token_to_buy,
+        amount_for_each,
+        price_checker,
+        100,
     )
 
-    gpv2_order = construct_gpv2_order(order_payload)
 
-    assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
-    assert gnosis_settlement.preSignature(order_uid) != 0
+# def test_pair_bad_min_out(
+#     milkman,
+#     user,
+#     wbtc_whale,
+#     wbtc,
+#     dai,
+#     chain,
+#     gnosis_settlement,
+#     univ2_price_checker,
+# ):
+#     amount = 1e8  # 1 btc
+#     wbtc.transfer(user, amount, {"from": wbtc_whale})
 
+#     wbtc.approve(milkman, amount, {"from": user})
 
-# milkman should only accept uids that are selling, not buying
-def test_pair_buy_to_sell(
-    milkman,
-    user,
-    wbtc_whale,
-    wbtc,
-    dai,
-    chain,
-    gnosis_settlement,
-    univ2_price_checker,
-):
-    amount = 1e8  # 1 btc
-    wbtc.transfer(user, amount, {"from": wbtc_whale})
+#     milkman.requestSwapExactTokensForTokens(
+#         int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
+#     )
 
-    wbtc.approve(milkman, amount, {"from": user})
+#     (order_uid, order_payload) = cowswap_create_order_id(
+#         chain,
+#         milkman,
+#         wbtc,
+#         dai,
+#         wbtc.balanceOf(milkman),
+#         user,
+#         5000,  # 50% slippage allowed, which shouldn't pass
+#     )
 
-    milkman.requestSwapExactTokensForTokens(
-        int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
-    )
+#     gpv2_order = construct_gpv2_order(order_payload)
 
-    fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/sell"
-    get_params = {
-        "sellToken": wbtc.address,
-        "buyToken": dai.address,
-        "sellAmountBeforeFee": int(amount),
-    }
-    r = requests.get(fee_and_quote, params=get_params)
-    assert r.ok and r.status_code == 200
+#     with brownie.reverts("invalid_min_out"):
+#         milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
 
-    # These two values are needed to create an order
-    fee_amount = int(r.json()["fee"]["amount"])
-    buy_amount_after_fee = int(r.json()["buyAmountAfterFee"])
-    buy_amount_after_fee_with_slippage = int(buy_amount_after_fee * 0.99)  # 1% slippage
-    assert fee_amount > 0
-    assert buy_amount_after_fee_with_slippage > 0
+#     # can still do it the correct way
 
-    # Pretty random order deadline :shrug:
-    deadline = chain.time() + 60 * 60 * 24 * 2  # 10 days
+#     (order_uid, order_payload) = cowswap_create_order_id(
+#         chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user, 100
+#     )
 
-    # Submit order
-    order_payload = {
-        "sellToken": wbtc.address,
-        "buyToken": dai.address,
-        "sellAmount": str(
-            int(amount - fee_amount)
-        ),  # amount that we have minus the fee we have to pay
-        "buyAmount": str(
-            buy_amount_after_fee_with_slippage
-        ),  # buy amount fetched from the previous call
-        "validTo": deadline,
-        "appData": "0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24",  # maps to https://bafybeiblq2ko2maieeuvtbzaqyhi5fzpa6vbbwnydsxbnsqoft5si5b6eq.ipfs.dweb.link
-        "feeAmount": str(fee_amount),
-        "kind": "buy",
-        "partiallyFillable": False,
-        "receiver": user.address,
-        "signature": milkman.address,
-        "from": milkman.address,
-        "sellTokenBalance": "erc20",
-        "buyTokenBalance": "erc20",
-        "signingScheme": "presign",  # Very important. this tells the api you are going to sign on chain
-    }
+#     gpv2_order = construct_gpv2_order(order_payload)
 
-    orders_url = f"https://api.cow.fi/mainnet/api/v1/orders"
-    r = requests.post(orders_url, json=order_payload)
-    assert r.ok and r.status_code == 201
-    order_uid = r.json()
-
-    gpv2_order = (
-        order_payload["sellToken"],
-        order_payload["buyToken"],
-        order_payload["receiver"],
-        int(order_payload["sellAmount"]),
-        int(order_payload["buyAmount"]),
-        order_payload["validTo"],
-        order_payload["appData"],
-        int(order_payload["feeAmount"]),
-        "0x6ed88e868af0a1983e3886d5f3e95a2fafbd6c3450bc229e27342283dc429ccc",  # KIND_BUY
-        False,
-        "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",  # ERC20 BALANCE
-        "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",
-    )
-
-    with brownie.reverts("!kind_sell"):
-        milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
-
-    # can still do it the correct way
-
-    (order_uid, order_payload) = cowswap_create_order_id(
-        chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user, 100
-    )
-
-    gpv2_order = construct_gpv2_order(order_payload)
-
-    assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
-    assert gnosis_settlement.preSignature(order_uid) != 0
+#     assert gnosis_settlement.preSignature(order_uid) == 0
+#     milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
+#     assert gnosis_settlement.preSignature(order_uid) != 0
 
 
-# the paired order should be valid for at least 5 mins
-def test_pair_invalid_valid_to(
-    milkman,
-    user,
-    wbtc_whale,
-    wbtc,
-    dai,
-    chain,
-    gnosis_settlement,
-    univ2_price_checker,
-):
-    amount = 1e8  # 1 btc
-    wbtc.transfer(user, amount, {"from": wbtc_whale})
+# # milkman should only accept uids that are selling, not buying
+# def test_pair_buy_to_sell(
+#     milkman,
+#     user,
+#     wbtc_whale,
+#     wbtc,
+#     dai,
+#     chain,
+#     gnosis_settlement,
+#     univ2_price_checker,
+# ):
+#     amount = 1e8  # 1 btc
+#     wbtc.transfer(user, amount, {"from": wbtc_whale})
 
-    wbtc.approve(milkman, amount, {"from": user})
+#     wbtc.approve(milkman, amount, {"from": user})
 
-    milkman.requestSwapExactTokensForTokens(
-        int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
-    )
+#     milkman.requestSwapExactTokensForTokens(
+#         int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
+#     )
 
-    fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/sell"
-    get_params = {
-        "sellToken": wbtc.address,
-        "buyToken": dai.address,
-        "sellAmountBeforeFee": int(amount),
-    }
-    r = requests.get(fee_and_quote, params=get_params)
-    assert r.ok and r.status_code == 200
+#     fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/sell"
+#     get_params = {
+#         "sellToken": wbtc.address,
+#         "buyToken": dai.address,
+#         "sellAmountBeforeFee": int(amount),
+#     }
+#     r = requests.get(fee_and_quote, params=get_params)
+#     assert r.ok and r.status_code == 200
 
-    fee_amount = int(r.json()["fee"]["amount"])
-    buy_amount_after_fee = int(r.json()["buyAmountAfterFee"])
-    buy_amount_after_fee_with_slippage = int(buy_amount_after_fee * 0.99)  # 1% slippage
-    assert fee_amount > 0
-    assert buy_amount_after_fee_with_slippage > 0
+#     # These two values are needed to create an order
+#     fee_amount = int(r.json()["fee"]["amount"])
+#     buy_amount_after_fee = int(r.json()["buyAmountAfterFee"])
+#     buy_amount_after_fee_with_slippage = int(buy_amount_after_fee * 0.99)  # 1% slippage
+#     assert fee_amount > 0
+#     assert buy_amount_after_fee_with_slippage > 0
 
-    deadline = chain.time() + 60 * 4  # 4 minutes
+#     # Pretty random order deadline :shrug:
+#     deadline = chain.time() + 60 * 60 * 24 * 2  # 10 days
 
-    order_payload = {
-        "sellToken": wbtc.address,
-        "buyToken": dai.address,
-        "sellAmount": str(int(amount - fee_amount)),
-        "buyAmount": str(buy_amount_after_fee_with_slippage),
-        "validTo": deadline,
-        "appData": "0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24",  # maps to https://bafybeiblq2ko2maieeuvtbzaqyhi5fzpa6vbbwnydsxbnsqoft5si5b6eq.ipfs.dweb.link
-        "feeAmount": str(fee_amount),
-        "kind": "sell",
-        "partiallyFillable": False,
-        "receiver": user.address,
-        "signature": milkman.address,
-        "from": milkman.address,
-        "sellTokenBalance": "erc20",
-        "buyTokenBalance": "erc20",
-        "signingScheme": "presign",  # Very important. this tells the api you are going to sign on chain
-    }
+#     # Submit order
+#     order_payload = {
+#         "sellToken": wbtc.address,
+#         "buyToken": dai.address,
+#         "sellAmount": str(
+#             int(amount - fee_amount)
+#         ),  # amount that we have minus the fee we have to pay
+#         "buyAmount": str(
+#             buy_amount_after_fee_with_slippage
+#         ),  # buy amount fetched from the previous call
+#         "validTo": deadline,
+#         "appData": "0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24",  # maps to https://bafybeiblq2ko2maieeuvtbzaqyhi5fzpa6vbbwnydsxbnsqoft5si5b6eq.ipfs.dweb.link
+#         "feeAmount": str(fee_amount),
+#         "kind": "buy",
+#         "partiallyFillable": False,
+#         "receiver": user.address,
+#         "signature": milkman.address,
+#         "from": milkman.address,
+#         "sellTokenBalance": "erc20",
+#         "buyTokenBalance": "erc20",
+#         "signingScheme": "presign",  # Very important. this tells the api you are going to sign on chain
+#     }
 
-    orders_url = f"https://api.cow.fi/mainnet/api/v1/orders"
-    r = requests.post(orders_url, json=order_payload)
-    assert r.ok and r.status_code == 201
-    order_uid = r.json()
+#     orders_url = f"https://api.cow.fi/mainnet/api/v1/orders"
+#     r = requests.post(orders_url, json=order_payload)
+#     assert r.ok and r.status_code == 201
+#     order_uid = r.json()
 
-    gpv2_order = (
-        order_payload["sellToken"],
-        order_payload["buyToken"],
-        order_payload["receiver"],
-        int(order_payload["sellAmount"]),
-        int(order_payload["buyAmount"]),
-        order_payload["validTo"],
-        order_payload["appData"],
-        int(order_payload["feeAmount"]),
-        "0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775",  # KIND_SELL
-        False,
-        "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",  # ERC20 BALANCE
-        "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",
-    )
+#     gpv2_order = (
+#         order_payload["sellToken"],
+#         order_payload["buyToken"],
+#         order_payload["receiver"],
+#         int(order_payload["sellAmount"]),
+#         int(order_payload["buyAmount"]),
+#         order_payload["validTo"],
+#         order_payload["appData"],
+#         int(order_payload["feeAmount"]),
+#         "0x6ed88e868af0a1983e3886d5f3e95a2fafbd6c3450bc229e27342283dc429ccc",  # KIND_BUY
+#         False,
+#         "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",  # ERC20 BALANCE
+#         "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",
+#     )
 
-    with brownie.reverts("expires_too_soon"):
-        milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
+#     with brownie.reverts("!kind_sell"):
+#         milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
 
-    # can still do it the correct way
+#     # can still do it the correct way
 
-    (order_uid, order_payload) = cowswap_create_order_id(
-        chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user, 100
-    )
+#     (order_uid, order_payload) = cowswap_create_order_id(
+#         chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user, 100
+#     )
 
-    gpv2_order = construct_gpv2_order(order_payload)
+#     gpv2_order = construct_gpv2_order(order_payload)
 
-    assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
-    assert gnosis_settlement.preSignature(order_uid) != 0
+#     assert gnosis_settlement.preSignature(order_uid) == 0
+#     milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
+#     assert gnosis_settlement.preSignature(order_uid) != 0
 
 
-# API doesn't currently accept non-fill-or-kill, so we can't test yet
-# # milkman should only accept fill or kill orders
-# def test_partially_fillable_order(
+# # the paired order should be valid for at least 5 mins
+# def test_pair_invalid_valid_to(
 #     milkman,
 #     user,
 #     wbtc_whale,
@@ -363,7 +278,7 @@ def test_pair_invalid_valid_to(
 #         "appData": "0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24",  # maps to https://bafybeiblq2ko2maieeuvtbzaqyhi5fzpa6vbbwnydsxbnsqoft5si5b6eq.ipfs.dweb.link
 #         "feeAmount": str(fee_amount),
 #         "kind": "sell",
-#         "partiallyFillable": True,
+#         "partiallyFillable": False,
 #         "receiver": user.address,
 #         "signature": milkman.address,
 #         "from": milkman.address,
@@ -387,13 +302,13 @@ def test_pair_invalid_valid_to(
 #         order_payload["appData"],
 #         int(order_payload["feeAmount"]),
 #         "0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775",  # KIND_SELL
-#         True,
+#         False,
 #         "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",  # ERC20 BALANCE
 #         "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",
 #     )
 
-#     with brownie.reverts("!fill_or_kill"):
-#         milkman.pairSwap( gpv2_order, user, univ2_price_checker, 0)
+#     with brownie.reverts("expires_too_soon"):
+#         milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
 
 #     # can still do it the correct way
 
@@ -404,96 +319,188 @@ def test_pair_invalid_valid_to(
 #     gpv2_order = construct_gpv2_order(order_payload)
 
 #     assert gnosis_settlement.preSignature(order_uid) == 0
-#     milkman.pairSwap( gpv2_order, user, univ2_price_checker, 0)
+#     milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
 #     assert gnosis_settlement.preSignature(order_uid) != 0
 
 
-def construct_gpv2_order(order_payload):
-    # struct Data {
-    #     IERC20 sellToken;
-    #     IERC20 buyToken;
-    #     address receiver;
-    #     uint256 sellAmount;
-    #     uint256 buyAmount;
-    #     uint32 validTo;
-    #     bytes32 appData;
-    #     uint256 feeAmount;
-    #     bytes32 kind;
-    #     bool partiallyFillable;
-    #     bytes32 sellTokenBalance;
-    #     bytes32 buyTokenBalance;
-    # }
-    order = (
-        order_payload["sellToken"],
-        order_payload["buyToken"],
-        order_payload["receiver"],
-        int(order_payload["sellAmount"]),
-        int(order_payload["buyAmount"]),
-        order_payload["validTo"],
-        order_payload["appData"],
-        int(order_payload["feeAmount"]),
-        "0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775",  # KIND_SELL
-        False,
-        "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",  # ERC20 BALANCE
-        "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",
-    )
+# # API doesn't currently accept non-fill-or-kill, so we can't test yet
+# # # milkman should only accept fill or kill orders
+# # def test_partially_fillable_order(
+# #     milkman,
+# #     user,
+# #     wbtc_whale,
+# #     wbtc,
+# #     dai,
+# #     chain,
+# #     gnosis_settlement,
+# #     univ2_price_checker,
+# # ):
+# #     amount = 1e8  # 1 btc
+# #     wbtc.transfer(user, amount, {"from": wbtc_whale})
 
-    return order
+# #     wbtc.approve(milkman, amount, {"from": user})
+
+# #     milkman.requestSwapExactTokensForTokens(
+# #         int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
+# #     )
+
+# #     fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/sell"
+# #     get_params = {
+# #         "sellToken": wbtc.address,
+# #         "buyToken": dai.address,
+# #         "sellAmountBeforeFee": int(amount),
+# #     }
+# #     r = requests.get(fee_and_quote, params=get_params)
+# #     assert r.ok and r.status_code == 200
+
+# #     fee_amount = int(r.json()["fee"]["amount"])
+# #     buy_amount_after_fee = int(r.json()["buyAmountAfterFee"])
+# #     buy_amount_after_fee_with_slippage = int(buy_amount_after_fee * 0.99)  # 1% slippage
+# #     assert fee_amount > 0
+# #     assert buy_amount_after_fee_with_slippage > 0
+
+# #     deadline = chain.time() + 60 * 4  # 4 minutes
+
+# #     order_payload = {
+# #         "sellToken": wbtc.address,
+# #         "buyToken": dai.address,
+# #         "sellAmount": str(int(amount - fee_amount)),
+# #         "buyAmount": str(buy_amount_after_fee_with_slippage),
+# #         "validTo": deadline,
+# #         "appData": "0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24",  # maps to https://bafybeiblq2ko2maieeuvtbzaqyhi5fzpa6vbbwnydsxbnsqoft5si5b6eq.ipfs.dweb.link
+# #         "feeAmount": str(fee_amount),
+# #         "kind": "sell",
+# #         "partiallyFillable": True,
+# #         "receiver": user.address,
+# #         "signature": milkman.address,
+# #         "from": milkman.address,
+# #         "sellTokenBalance": "erc20",
+# #         "buyTokenBalance": "erc20",
+# #         "signingScheme": "presign",  # Very important. this tells the api you are going to sign on chain
+# #     }
+
+# #     orders_url = f"https://api.cow.fi/mainnet/api/v1/orders"
+# #     r = requests.post(orders_url, json=order_payload)
+# #     assert r.ok and r.status_code == 201
+# #     order_uid = r.json()
+
+# #     gpv2_order = (
+# #         order_payload["sellToken"],
+# #         order_payload["buyToken"],
+# #         order_payload["receiver"],
+# #         int(order_payload["sellAmount"]),
+# #         int(order_payload["buyAmount"]),
+# #         order_payload["validTo"],
+# #         order_payload["appData"],
+# #         int(order_payload["feeAmount"]),
+# #         "0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775",  # KIND_SELL
+# #         True,
+# #         "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",  # ERC20 BALANCE
+# #         "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",
+# #     )
+
+# #     with brownie.reverts("!fill_or_kill"):
+# #         milkman.pairSwap( gpv2_order, user, univ2_price_checker, 0)
+
+# #     # can still do it the correct way
+
+# #     (order_uid, order_payload) = cowswap_create_order_id(
+# #         chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user, 100
+# #     )
+
+# #     gpv2_order = construct_gpv2_order(order_payload)
+
+# #     assert gnosis_settlement.preSignature(order_uid) == 0
+# #     milkman.pairSwap( gpv2_order, user, univ2_price_checker, 0)
+# #     assert gnosis_settlement.preSignature(order_uid) != 0
 
 
-def cowswap_create_order_id(
-    chain, milkman, sell_token, buy_token, amount, receiver, allowed_slippage_in_bips
-):
-    # get the fee + the buy amount after fee
-    fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/sell"
-    get_params = {
-        "sellToken": sell_token.address,
-        "buyToken": buy_token.address,
-        "sellAmountBeforeFee": int(amount),
-    }
-    r = requests.get(fee_and_quote, params=get_params)
-    assert r.ok and r.status_code == 200
+# def construct_gpv2_order(order_payload):
+#     # struct Data {
+#     #     IERC20 sellToken;
+#     #     IERC20 buyToken;
+#     #     address receiver;
+#     #     uint256 sellAmount;
+#     #     uint256 buyAmount;
+#     #     uint32 validTo;
+#     #     bytes32 appData;
+#     #     uint256 feeAmount;
+#     #     bytes32 kind;
+#     #     bool partiallyFillable;
+#     #     bytes32 sellTokenBalance;
+#     #     bytes32 buyTokenBalance;
+#     # }
+#     order = (
+#         order_payload["sellToken"],
+#         order_payload["buyToken"],
+#         order_payload["receiver"],
+#         int(order_payload["sellAmount"]),
+#         int(order_payload["buyAmount"]),
+#         order_payload["validTo"],
+#         order_payload["appData"],
+#         int(order_payload["feeAmount"]),
+#         "0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775",  # KIND_SELL
+#         False,
+#         "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",  # ERC20 BALANCE
+#         "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",
+#     )
 
-    # These two values are needed to create an order
-    fee_amount = int(r.json()["fee"]["amount"])
-    buy_amount_after_fee = int(r.json()["buyAmountAfterFee"])
-    buy_amount_after_fee_with_slippage = int(
-        (buy_amount_after_fee * (10_000 - allowed_slippage_in_bips)) / 10_000
-    )  # 1% slippage
-    assert fee_amount > 0
-    assert buy_amount_after_fee_with_slippage > 0
+#     return order
 
-    # Pretty random order deadline :shrug:
-    deadline = chain.time() + 60 * 60 * 24 * 2  # 10 days
 
-    # Submit order
-    order_payload = {
-        "sellToken": sell_token.address,
-        "buyToken": buy_token.address,
-        "sellAmount": str(
-            amount - fee_amount
-        ),  # amount that we have minus the fee we have to pay
-        "buyAmount": str(
-            buy_amount_after_fee_with_slippage
-        ),  # buy amount fetched from the previous call
-        "validTo": deadline,
-        "appData": "0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24",  # maps to https://bafybeiblq2ko2maieeuvtbzaqyhi5fzpa6vbbwnydsxbnsqoft5si5b6eq.ipfs.dweb.link
-        "feeAmount": str(fee_amount),
-        "kind": "sell",
-        "partiallyFillable": False,
-        "receiver": receiver.address,
-        "signature": milkman.address,
-        "from": milkman.address,
-        "sellTokenBalance": "erc20",
-        "buyTokenBalance": "erc20",
-        "signingScheme": "presign",  # Very important. this tells the api you are going to sign on chain
-    }
+# def cowswap_create_order_id(
+#     chain, milkman, sell_token, buy_token, amount, receiver, allowed_slippage_in_bips
+# ):
+#     # get the fee + the buy amount after fee
+#     fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/sell"
+#     get_params = {
+#         "sellToken": sell_token.address,
+#         "buyToken": buy_token.address,
+#         "sellAmountBeforeFee": int(amount),
+#     }
+#     r = requests.get(fee_and_quote, params=get_params)
+#     assert r.ok and r.status_code == 200
 
-    orders_url = f"https://api.cow.fi/mainnet/api/v1/orders"
-    r = requests.post(orders_url, json=order_payload)
-    assert r.ok and r.status_code == 201
-    order_uid = r.json()
-    print(f"Payload: {order_payload}")
-    print(f"Order uid: {order_uid}")
+#     # These two values are needed to create an order
+#     fee_amount = int(r.json()["fee"]["amount"])
+#     buy_amount_after_fee = int(r.json()["buyAmountAfterFee"])
+#     buy_amount_after_fee_with_slippage = int(
+#         (buy_amount_after_fee * (10_000 - allowed_slippage_in_bips)) / 10_000
+#     )  # 1% slippage
+#     assert fee_amount > 0
+#     assert buy_amount_after_fee_with_slippage > 0
 
-    return (order_uid, order_payload)
+#     # Pretty random order deadline :shrug:
+#     deadline = chain.time() + 60 * 60 * 24 * 2  # 10 days
+
+#     # Submit order
+#     order_payload = {
+#         "sellToken": sell_token.address,
+#         "buyToken": buy_token.address,
+#         "sellAmount": str(
+#             amount - fee_amount
+#         ),  # amount that we have minus the fee we have to pay
+#         "buyAmount": str(
+#             buy_amount_after_fee_with_slippage
+#         ),  # buy amount fetched from the previous call
+#         "validTo": deadline,
+#         "appData": "0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24",  # maps to https://bafybeiblq2ko2maieeuvtbzaqyhi5fzpa6vbbwnydsxbnsqoft5si5b6eq.ipfs.dweb.link
+#         "feeAmount": str(fee_amount),
+#         "kind": "sell",
+#         "partiallyFillable": False,
+#         "receiver": receiver.address,
+#         "signature": milkman.address,
+#         "from": milkman.address,
+#         "sellTokenBalance": "erc20",
+#         "buyTokenBalance": "erc20",
+#         "signingScheme": "presign",  # Very important. this tells the api you are going to sign on chain
+#     }
+
+#     orders_url = f"https://api.cow.fi/mainnet/api/v1/orders"
+#     r = requests.post(orders_url, json=order_payload)
+#     assert r.ok and r.status_code == 201
+#     order_uid = r.json()
+#     print(f"Payload: {order_payload}")
+#     print(f"Order uid: {order_uid}")
+
+#     return (order_uid, order_payload)
