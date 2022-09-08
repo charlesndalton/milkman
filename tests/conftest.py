@@ -1,4 +1,5 @@
 from brownie import Contract
+from eth_abi import encode_abi
 import pytest
 
 
@@ -18,7 +19,7 @@ def deployer(accounts):
 
 
 # test the following paths:
-# GNO -> DAI, $75k & Uniswap as the price checker
+# TOKE -> DAI, $75k & Uniswap as the price checker
 # aREP (Aave REP) -> YFI, $100 & 1inch as the price checker
 # WETH -> WBTC, $80M & Uniswap as the price checker
 # USDC -> USDT, $5M and Curve as the price checker
@@ -29,10 +30,11 @@ token_address = {
     "WBTC": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
     "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     "YFI": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
+    "TOKE": "0x2e9d63788249371f1DFC918a52f8d799F4a38C94"
 }
 
 sell_to_buy_map = {
-    "GNO": "DAI",
+    "TOKE": "DAI",
     "USDC": "WBTC",
     "WETH": "YFI",
 }
@@ -40,7 +42,7 @@ sell_to_buy_map = {
 
 @pytest.fixture(
     params=[
-        "GNO",
+        "TOKE",
     ],
     scope="session",
     autouse=True,
@@ -55,7 +57,8 @@ def token_to_buy(token_to_sell):
 
 
 amounts = {
-    "GNO": 10_000,  # $1.5M at current prices
+    "GNO": 10_000, 
+    "TOKE": 80_000, 
     "USDC": 50,
     "WETH": 50_000,  # ~$100M, good for testing the high slippage scenario
     "USDT": 10_000_000,  # USDT via Aave
@@ -85,6 +88,7 @@ whale_address = {
     "USDC": "0x0A59649758aa4d66E25f08Dd01271e891fe52199",
     "LINK": "0x98C63b7B319dFBDF3d811530F2ab9DfE4983Af9D",
     "GNO": "0x4f8AD938eBA0CD19155a835f617317a6E788c868",
+    "TOKE": "0x96F98Ed74639689C3A11daf38ef86E59F43417D3",
 }
 
 
@@ -100,8 +104,17 @@ def price_checker(UniV2PriceChecker, deployer, token_to_sell):
 
     # yield univ2_price_checker
 
-    if symbol == "GNO":
+    if symbol == "TOKE":
         yield univ2_price_checker
+
+
+# which price checker data to use for each swap
+price_checker_datas = {"TOKE": encode_abi(["uint8"], [int(0)])}
+
+
+@pytest.fixture(scope="session", autouse=True)
+def price_checker_data(token_to_sell):
+    yield price_checker_datas[token_to_sell.symbol()]
 
 
 @pytest.fixture

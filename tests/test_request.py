@@ -77,7 +77,6 @@ def test_request_swap_twice(
     assert tx.events.count("SwapRequested") == 1
 
     assert milkman.nonce() == 2
-    
 
     utils.check_swap_requested(
         milkman,
