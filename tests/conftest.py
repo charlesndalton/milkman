@@ -102,12 +102,11 @@ def price_checker(UniV2PriceChecker, CurvePriceChecker, deployer, token_to_sell)
         yield curve_price_checker
 
 
-
 # which price checker data to use for each swap
 price_checker_datas = {
-    "TOKE": encode_abi(["uint8"], [int(0)]), # doesn't matter 
-    "USDC": encode_abi(["uint8"], [int(0)]), # default slippage
-    "GUSD": encode_abi(["uint256"], [int(500)]), # 5% slippage to allow for gas
+    "TOKE": encode_abi(["uint8"], [int(0)]),  # doesn't matter
+    "USDC": encode_abi(["uint8"], [int(0)]),  # default slippage
+    "GUSD": encode_abi(["uint256"], [int(500)]),  # 5% slippage to allow for gas
 }
 
 
