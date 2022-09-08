@@ -40,7 +40,7 @@ def test_pair(
         amount,
         price_checker,
         price_checker_data,
-        100,
+        50,
     )
 
 
@@ -91,7 +91,7 @@ def test_pair_multiple_swaps(
         amount_for_each,
         price_checker,
         price_checker_data,
-        100,
+        50,
     )
 
     utils.pair_swap(
@@ -106,7 +106,7 @@ def test_pair_multiple_swaps(
         amount_for_each,
         price_checker,
         price_checker_data,
-        100,
+        50,
     )
 
 
@@ -162,7 +162,7 @@ def test_pair_bad_min_out(
         amount,
         price_checker,
         price_checker_data,
-        100,
+        50,
     )
 
 
@@ -199,9 +199,20 @@ def test_pair_buy_to_sell(
     r = requests.get(fee_and_quote, params=get_params)
     assert r.ok and r.status_code == 200
 
+    buy_amount = int(r.json()["buyAmountAfterFee"])
+
+    fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/buy"
+    get_params = {
+        "sellToken": token_to_sell.address,
+        "buyToken": token_to_buy.address,
+        "buyAmountAfterFee": buy_amount,
+    }
+    r = requests.get(fee_and_quote, params=get_params)
+    assert r.ok and r.status_code == 200
+
     # These two values are needed to create an order
     fee_amount = int(r.json()["fee"]["amount"])
-    buy_amount_after_fee = int(r.json()["buyAmountAfterFee"])
+    buy_amount_after_fee = buy_amount
     buy_amount_after_fee_with_slippage = int(buy_amount_after_fee * 0.99)  # 1% slippage
     assert fee_amount > 0
     assert buy_amount_after_fee_with_slippage > 0
@@ -269,7 +280,7 @@ def test_pair_buy_to_sell(
         amount,
         price_checker,
         price_checker_data,
-        100,
+        50,
     )
 
 
@@ -369,7 +380,7 @@ def test_pair_invalid_valid_to(
         amount,
         price_checker,
         price_checker_data,
-        100,
+        50,
     )
 
 

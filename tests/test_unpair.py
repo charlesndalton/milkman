@@ -40,7 +40,7 @@ def test_unpair(
         amount,
         price_checker,
         price_checker_data,
-        100,
+        50,
     )
 
     chain.mine(51)
@@ -95,7 +95,7 @@ def test_unpair_not_enough_time_elapsed(
         amount,
         price_checker,
         price_checker_data,
-        100,
+        50,
     )
 
     encoded_market_order = utils.encode_market_order(
@@ -155,7 +155,7 @@ def test_unpair_and_pair_again(
         amount,
         price_checker,
         price_checker_data,
-        100,
+        50,
     )
 
     chain.mine(51)
@@ -187,7 +187,7 @@ def test_unpair_and_pair_again(
         amount,
         price_checker,
         price_checker_data,
-        100,
+        50,
     )
 
 
@@ -244,7 +244,7 @@ def test_cannot_unpair_swap_that_hasnt_been_paired(
         amount,
         price_checker,
         price_checker_data,
-        100,
+        50,
     )
 
     chain.mine(51)

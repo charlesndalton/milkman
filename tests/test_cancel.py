@@ -80,7 +80,7 @@ def test_pair_unpair_then_cancel(
         amount,
         price_checker,
         price_checker_data,
-        100,
+        50,
     )
 
     chain.mine(51)
@@ -151,7 +151,7 @@ def test_cant_cancel_paired_swap(
         amount,
         price_checker,
         price_checker_data,
-        100,
+        50,
     )
 
     with brownie.reverts("!swap_requested"):

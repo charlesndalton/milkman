@@ -2,6 +2,7 @@ from os import times
 import requests
 from eth_abi import encode_abi
 from eth_utils import keccak
+import time
 
 
 def check_swap_requested(
@@ -161,8 +162,11 @@ def create_offchain_order(
         if r.ok and r.status_code == 200:
             break
 
+        time.sleep(1)
+
         r = requests.get(fee_and_quote, params=get_params)
         times_to_retry -= 1
+    print(f"Response: {r}")
     assert r.ok and r.status_code == 200
 
     # These two values are needed to create an order
@@ -207,7 +211,7 @@ def create_offchain_order(
         if r.ok and r.status_code == 201:
             break
 
-        r = requests.get(fee_and_quote, params=get_params)
+        r = requests.post(orders_url, json=order_payload)
         times_to_retry -= 1
     assert r.ok and r.status_code == 201
     order_uid = r.json()
