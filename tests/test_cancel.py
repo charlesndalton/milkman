@@ -2,220 +2,148 @@ from eth_abi import encode_abi
 from eth_utils import keccak
 import requests
 import brownie
+import utils
 
 
 def test_cancel(
+    chain,
     milkman,
     user,
-    wbtc_whale,
-    wbtc,
-    dai,
-    chain,
     gnosis_settlement,
-    univ2_price_checker,
+    token_to_sell,
+    token_to_buy,
+    amount,
+    price_checker,
+    price_checker_data,
 ):
-    amount = 1e8  # 1 btc
-    wbtc.transfer(user, amount, {"from": wbtc_whale})
-
-    wbtc.approve(milkman, amount, {"from": user})
+    token_to_sell.approve(milkman, amount, {"from": user})
 
     milkman.requestSwapExactTokensForTokens(
-        int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
+        amount,
+        token_to_sell,
+        token_to_buy,
+        user,
+        price_checker,
+        price_checker_data,
+        {"from": user},
     )
 
-    assert wbtc.balanceOf(user) == 0
-
+    assert token_to_sell.balanceOf(user) == 0
     # should be 0 nonce
     tx = milkman.cancelSwapRequest(
-        int(amount), wbtc, dai, user, univ2_price_checker, int(0), {"from": user}
+        amount, token_to_sell, token_to_buy, user, price_checker, price_checker_data, 0, {"from": user}
     )
 
+    
     assert tx.events.count("SwapCancelled") == 1
-
-    assert wbtc.balanceOf(user) == int(amount)
+    assert token_to_sell.balanceOf(user) == amount
 
 
 def test_pair_unpair_then_cancel(
+    chain,
     milkman,
     user,
-    wbtc_whale,
-    wbtc,
-    dai,
-    chain,
     gnosis_settlement,
-    univ2_price_checker,
+    token_to_sell,
+    token_to_buy,
+    amount,
+    price_checker,
+    price_checker_data,
 ):
-    amount = 1e8  # 1 btc
-    wbtc.transfer(user, amount, {"from": wbtc_whale})
-    wbtc.approve(milkman, amount, {"from": user})
-
-    wbtc_balance_before = wbtc.balanceOf(user)
+    token_to_sell.approve(milkman, amount, {"from": user})
 
     milkman.requestSwapExactTokensForTokens(
-        int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
+        amount,
+        token_to_sell,
+        token_to_buy,
+        user,
+        price_checker,
+        price_checker_data,
+        {"from": user},
     )
 
-    (order_uid, order_payload) = cowswap_create_order_id(
-        chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user, 100
+    (order_uid, _) = utils.pair_swap(
+        0,
+        chain,
+        gnosis_settlement,
+        milkman,
+        user,
+        user,
+        token_to_sell,
+        token_to_buy,
+        amount,
+        price_checker,
+        price_checker_data,
+        100,
     )
-
-    gpv2_order = construct_gpv2_order(order_payload)
-
-    assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
-    assert gnosis_settlement.preSignature(order_uid) != 0
 
     chain.mine(51)
 
-    # user, receiver, from_token, to_token, amount_in, price_checker, nonce
-    encoded_market_order = encode_abi(
-        ["address", "address", "address", "address", "uint256", "address", "uint256"],
-        [
-            user.address,
-            user.address,
-            wbtc.address,
-            dai.address,
-            int(amount),
-            univ2_price_checker.address,
-            0,
-        ],
+    encoded_market_order = utils.encode_market_order(
+        user,
+        user,
+        token_to_sell,
+        token_to_buy,
+        amount,
+        price_checker,
+        price_checker_data,
+        0,
     )
     swap_id = keccak(encoded_market_order)
 
-    milkman.unpairSwap(swap_id)
+    utils.unpair_swap(gnosis_settlement, milkman, swap_id, order_uid)
 
-    milkman.cancelSwapRequest(
-        int(amount), wbtc, dai, user, univ2_price_checker, int(0), {"from": user}
+    assert token_to_sell.balanceOf(user) == 0
+    tx = milkman.cancelSwapRequest(
+        amount, token_to_sell, token_to_buy, user, price_checker, price_checker_data, 0, {"from": user}
     )
 
-    assert wbtc.balanceOf(user) == int(wbtc_balance_before)
+    
+    assert tx.events.count("SwapCancelled") == 1
+    assert token_to_sell.balanceOf(user) == amount
 
 
 # test that we can't cancel paired trades
-
-
 def test_cant_cancel_paired_swap(
+    chain,
     milkman,
     user,
-    wbtc_whale,
-    wbtc,
-    dai,
-    chain,
     gnosis_settlement,
-    univ2_price_checker,
+    token_to_sell,
+    token_to_buy,
+    amount,
+    price_checker,
+    price_checker_data,
 ):
-    amount = 1e8  # 1 btc
-    wbtc.transfer(user, amount, {"from": wbtc_whale})
-    wbtc.approve(milkman, amount, {"from": user})
-
-    wbtc_balance_before = wbtc.balanceOf(user)
+    token_to_sell.approve(milkman, amount, {"from": user})
 
     milkman.requestSwapExactTokensForTokens(
-        int(amount), wbtc, dai, user, univ2_price_checker, {"from": user}
+        amount,
+        token_to_sell,
+        token_to_buy,
+        user,
+        price_checker,
+        price_checker_data,
+        {"from": user},
     )
 
-    (order_uid, order_payload) = cowswap_create_order_id(
-        chain, milkman, wbtc, dai, wbtc.balanceOf(milkman), user, 100
+    utils.pair_swap(
+        0,
+        chain,
+        gnosis_settlement,
+        milkman,
+        user,
+        user,
+        token_to_sell,
+        token_to_buy,
+        amount,
+        price_checker,
+        price_checker_data,
+        100,
     )
-
-    gpv2_order = construct_gpv2_order(order_payload)
-
-    assert gnosis_settlement.preSignature(order_uid) == 0
-    milkman.pairSwap(gpv2_order, user, univ2_price_checker, 0)
-    assert gnosis_settlement.preSignature(order_uid) != 0
 
     with brownie.reverts("!swap_requested"):
         milkman.cancelSwapRequest(
-            int(amount), wbtc, dai, user, univ2_price_checker, int(0), {"from": user}
+            amount, token_to_sell, token_to_buy, user, price_checker, price_checker_data, 0, {"from": user}
         )
 
-
-def cowswap_create_order_id(
-    chain, milkman, sell_token, buy_token, amount, receiver, allowed_slippage_in_bips
-):
-    # get the fee + the buy amount after fee
-    fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/sell"
-    get_params = {
-        "sellToken": sell_token.address,
-        "buyToken": buy_token.address,
-        "sellAmountBeforeFee": str(amount),
-    }
-    r = requests.get(fee_and_quote, params=get_params)
-    assert r.ok and r.status_code == 200
-
-    # These two values are needed to create an order
-    fee_amount = int(r.json()["fee"]["amount"])
-    buy_amount_after_fee = int(r.json()["buyAmountAfterFee"])
-    buy_amount_after_fee_with_slippage = int(
-        (buy_amount_after_fee * (10_000 - allowed_slippage_in_bips)) / 10_000
-    )  # 1% slippage
-    assert fee_amount > 0
-    assert buy_amount_after_fee_with_slippage > 0
-
-    # Pretty random order deadline :shrug:
-    deadline = chain.time() + 60 * 60 * 24 * 2  # 10 days
-
-    # Submit order
-    order_payload = {
-        "sellToken": sell_token.address,
-        "buyToken": buy_token.address,
-        "sellAmount": str(
-            amount - fee_amount
-        ),  # amount that we have minus the fee we have to pay
-        "buyAmount": str(
-            buy_amount_after_fee_with_slippage
-        ),  # buy amount fetched from the previous call
-        "validTo": deadline,
-        "appData": "0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24",  # maps to https://bafybeiblq2ko2maieeuvtbzaqyhi5fzpa6vbbwnydsxbnsqoft5si5b6eq.ipfs.dweb.link
-        "feeAmount": str(fee_amount),
-        "kind": "sell",
-        "partiallyFillable": False,
-        "receiver": receiver.address,
-        "signature": milkman.address,
-        "from": milkman.address,
-        "sellTokenBalance": "erc20",
-        "buyTokenBalance": "erc20",
-        "signingScheme": "presign",  # Very important. this tells the api you are going to sign on chain
-    }
-
-    orders_url = f"https://api.cow.fi/mainnet/api/v1/orders"
-    r = requests.post(orders_url, json=order_payload)
-    assert r.ok and r.status_code == 201
-    order_uid = r.json()
-    print(f"Payload: {order_payload}")
-    print(f"Order uid: {order_uid}")
-
-    return (order_uid, order_payload)
-
-
-def construct_gpv2_order(order_payload):
-    # struct Data {
-    #     IERC20 sellToken;
-    #     IERC20 buyToken;
-    #     address receiver;
-    #     uint256 sellAmount;
-    #     uint256 buyAmount;
-    #     uint32 validTo;
-    #     bytes32 appData;
-    #     uint256 feeAmount;
-    #     bytes32 kind;
-    #     bool partiallyFillable;
-    #     bytes32 sellTokenBalance;
-    #     bytes32 buyTokenBalance;
-    # }
-    order = (
-        order_payload["sellToken"],
-        order_payload["buyToken"],
-        order_payload["receiver"],
-        int(order_payload["sellAmount"]),
-        int(order_payload["buyAmount"]),
-        order_payload["validTo"],
-        order_payload["appData"],
-        int(order_payload["feeAmount"]),
-        "0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775",  # KIND_SELL
-        False,
-        "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",  # ERC20 BALANCE
-        "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9",
-    )
-
-    return order

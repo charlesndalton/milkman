@@ -68,7 +68,7 @@ contract Milkman {
     /// @param _toToken The token that the user wishes to buy.
     /// @param _to Who should receive the bought tokens.
     /// @param _priceChecker An optional contract (use address(0) for none) that checks, on behalf of the user, that the CoW protocol order that Milkman signs has set a reasonable minOut.
-    /// @param _priceCheckerData Optional data that gets passed to the price checker. 
+    /// @param _priceCheckerData Optional data that gets passed to the price checker.
     function requestSwapExactTokensForTokens(
         uint256 _amountIn,
         IERC20 _fromToken,

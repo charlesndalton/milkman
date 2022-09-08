@@ -57,9 +57,7 @@ def test_unpair(
     )
     swap_id = keccak(encoded_market_order)
 
-    assert gnosis_settlement.preSignature(order_uid) != 0
-    milkman.unpairSwap(swap_id)
-    assert gnosis_settlement.preSignature(order_uid) == 0
+    utils.unpair_swap(gnosis_settlement, milkman, swap_id, order_uid)
 
 
 def test_unpair_not_enough_time_elapsed(

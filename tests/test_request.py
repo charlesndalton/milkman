@@ -34,7 +34,7 @@ def test_request_swap(
         token_to_sell,
         token_to_buy,
         amount,
-        price_checker.address,
+        price_checker,
         price_checker_data,
         0,
     )
@@ -49,11 +49,12 @@ def test_request_swap_twice(
     price_checker,
     price_checker_data,
 ):
-
     token_to_sell.approve(milkman, amount, {"from": user})
 
+    amount_for_each = int(amount / 2)
+
     tx = milkman.requestSwapExactTokensForTokens(
-        int(amount / 2),
+        amount_for_each,
         token_to_sell,
         token_to_buy,
         user,
@@ -65,7 +66,7 @@ def test_request_swap_twice(
     assert tx.events.count("SwapRequested") == 1
 
     tx = milkman.requestSwapExactTokensForTokens(
-        int(amount / 2),
+        amount_for_each,
         token_to_sell,
         token_to_buy,
         user,
@@ -84,8 +85,8 @@ def test_request_swap_twice(
         user,
         token_to_sell,
         token_to_buy,
-        amount / 2,
-        price_checker.address,
+        amount_for_each,
+        price_checker,
         price_checker_data,
         0,
     )
@@ -95,8 +96,8 @@ def test_request_swap_twice(
         user,
         token_to_sell,
         token_to_buy,
-        amount / 2,
-        price_checker.address,
+        amount_for_each,
+        price_checker,
         price_checker_data,
         1,
     )
