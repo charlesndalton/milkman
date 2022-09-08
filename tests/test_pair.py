@@ -133,7 +133,6 @@ def test_pair_bad_min_out(
         {"from": user},
     )
 
-
     (order_uid, order_payload) = utils.create_offchain_order(
         chain,
         milkman,
@@ -165,7 +164,6 @@ def test_pair_bad_min_out(
         price_checker_data,
         100,
     )
-
 
 
 # milkman should only accept uids that are selling, not buying

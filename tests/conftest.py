@@ -30,7 +30,7 @@ token_address = {
     "WBTC": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
     "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     "YFI": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
-    "TOKE": "0x2e9d63788249371f1DFC918a52f8d799F4a38C94"
+    "TOKE": "0x2e9d63788249371f1DFC918a52f8d799F4a38C94",
 }
 
 sell_to_buy_map = {
@@ -57,8 +57,8 @@ def token_to_buy(token_to_sell):
 
 
 amounts = {
-    "GNO": 10_000, 
-    "TOKE": 80_000, 
+    "GNO": 10_000,
+    "TOKE": 80_000,
     "USDC": 50,
     "WETH": 50_000,  # ~$100M, good for testing the high slippage scenario
     "USDT": 10_000_000,  # USDT via Aave

@@ -11,12 +11,42 @@ def check_swap_requested(
     from_token,
     to_token,
     amount,
-    price_checker_address,
+    price_checker,
     price_checker_data,
     nonce,
 ):
     # user, receiver, from_token, to_token, amount_in, price_checker, price_checker_data, nonce
-    encoded_market_order = encode_abi(
+    encoded_market_order = encode_market_order(
+        user,
+        receiver,
+        from_token,
+        to_token,
+        amount,
+        price_checker,
+        price_checker_data,
+        nonce,
+    )
+    swap_id = keccak(encoded_market_order)
+    swap_data = milkman.swaps(swap_id)
+
+    swap_requested_data = encode_abi(["uint256"], [int(1)])
+
+    print(f"Swap Data: {swap_data}")
+    print(f"Swap Requested Data: {swap_requested_data}")
+    assert swap_data.hex() == swap_requested_data.hex()
+
+
+def encode_market_order(
+    user,
+    receiver,
+    from_token,
+    to_token,
+    amount,
+    price_checker,
+    price_checker_data,
+    nonce,
+):
+    return encode_abi(
         [
             "address",
             "address",
@@ -32,20 +62,18 @@ def check_swap_requested(
             receiver.address,
             from_token.address,
             to_token.address,
-            int(amount),
-            price_checker_address,
+            amount,
+            price_checker.address,
             price_checker_data,
             nonce,
         ],
     )
-    swap_id = keccak(encoded_market_order)
-    swap_data = milkman.swaps(swap_id)
 
-    swap_requested_data = encode_abi(["uint256"], [int(1)])
 
-    print(f"Swap Data: {swap_data}")
-    print(f"Swap Requested Data: {swap_requested_data}")
-    assert swap_data.hex() == swap_requested_data.hex()
+def unpair_swap(gnosis_settlement, milkman, swap_id, order_uid):
+    assert gnosis_settlement.preSignature(order_uid) != 0
+    milkman.unpairSwap(swap_id)
+    assert gnosis_settlement.preSignature(order_uid) == 0
 
 
 def pair_swap(
@@ -77,6 +105,8 @@ def pair_swap(
     assert gnosis_settlement.preSignature(order_uid) == 0
     milkman.pairSwap(gpv2_order, user, price_checker, price_checker_data, nonce)
     assert gnosis_settlement.preSignature(order_uid) != 0
+
+    return (order_uid, order_payload)
 
 
 def convert_offchain_order_into_gpv2_order(order_payload):
