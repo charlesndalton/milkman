@@ -232,8 +232,6 @@ def test_cannot_unpair_swap_that_hasnt_been_paired(
     with brownie.reverts(""):
         milkman.unpairSwap(swap_id)
 
-    
-
     (order_uid, _) = utils.pair_swap(
         0,
         chain,

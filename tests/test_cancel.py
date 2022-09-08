@@ -31,10 +31,16 @@ def test_cancel(
     assert token_to_sell.balanceOf(user) == 0
     # should be 0 nonce
     tx = milkman.cancelSwapRequest(
-        amount, token_to_sell, token_to_buy, user, price_checker, price_checker_data, 0, {"from": user}
+        amount,
+        token_to_sell,
+        token_to_buy,
+        user,
+        price_checker,
+        price_checker_data,
+        0,
+        {"from": user},
     )
 
-    
     assert tx.events.count("SwapCancelled") == 1
     assert token_to_sell.balanceOf(user) == amount
 
@@ -95,10 +101,16 @@ def test_pair_unpair_then_cancel(
 
     assert token_to_sell.balanceOf(user) == 0
     tx = milkman.cancelSwapRequest(
-        amount, token_to_sell, token_to_buy, user, price_checker, price_checker_data, 0, {"from": user}
+        amount,
+        token_to_sell,
+        token_to_buy,
+        user,
+        price_checker,
+        price_checker_data,
+        0,
+        {"from": user},
     )
 
-    
     assert tx.events.count("SwapCancelled") == 1
     assert token_to_sell.balanceOf(user) == amount
 
@@ -144,6 +156,12 @@ def test_cant_cancel_paired_swap(
 
     with brownie.reverts("!swap_requested"):
         milkman.cancelSwapRequest(
-            amount, token_to_sell, token_to_buy, user, price_checker, price_checker_data, 0, {"from": user}
+            amount,
+            token_to_sell,
+            token_to_buy,
+            user,
+            price_checker,
+            price_checker_data,
+            0,
+            {"from": user},
         )
-
