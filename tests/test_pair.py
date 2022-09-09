@@ -57,7 +57,7 @@ def test_pair_multiple_swaps(
 ):
     token_to_sell.approve(milkman, amount, {"from": user})
 
-    amount_for_each = int(amount / 2)
+    amount_for_each = int(amount * 0.49) # python precision thing
 
     milkman.requestSwapExactTokensForTokens(
         amount_for_each,

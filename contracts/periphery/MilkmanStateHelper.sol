@@ -19,7 +19,8 @@ contract MilkmanStateHelper {
         PAIRED_AND_EXECUTED
     }
 
-    IMilkman public constant milkman = IMilkman(0x3E40B8c9FcBf02a26Ff1c5d88f525AEd00755575);
+    IMilkman public constant milkman =
+        IMilkman(0x3E40B8c9FcBf02a26Ff1c5d88f525AEd00755575);
 
     IGPv2Settlement internal constant settlement =
         IGPv2Settlement(0x9008D19f58AAbD9eD0D60971565AA8510560ab41);
@@ -29,9 +30,11 @@ contract MilkmanStateHelper {
 
         if (_swapData.length == 0) {
             return SwapState.NULL;
-        } else if (_swapData.length == 32 && _swapData[31] == bytes1(uint8(1))) {
+        } else if (
+            _swapData.length == 32 && _swapData[31] == bytes1(uint8(1))
+        ) {
             return SwapState.REQUESTED;
-        } 
+        }
 
         (uint256 _blockNumberWhenPaired, bytes memory _orderUid) = abi.decode(
             _swapData,

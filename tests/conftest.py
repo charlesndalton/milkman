@@ -22,6 +22,8 @@ def deployer(accounts):
 # TOKE -> DAI, $75k, Sushiswap price checker
 # USDC -> USDT, $5M, Curve price checker
 # GUSD -> USDC, $1k, Curve price checker
+# AAVE -> WETH, $250k, Chainlink price checker
+# BAT -> ALCX, $100k, Chainlink price checker
 # aREP (Aave REP) -> YFI, $100 & 1inch as the price checker
 # WETH -> WBTC, $80M & Uniswap as the price checker
 token_address = {
@@ -30,20 +32,28 @@ token_address = {
     "USDC": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     "USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
     "GUSD": "0x056Fd409E1d7A124BD7017459dFEa2F387b6d5Cd",
+    "AAVE": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9",
+    "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "BAT": "0x0D8775F648430679A709E98d2b0Cb6250d2887EF",
+    "ALCX": "0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF",
 }
 
 sell_to_buy_map = {
     "TOKE": "DAI",
     "USDC": "USDT",
     "GUSD": "USDC",
+    "AAVE": "WETH",
+    "BAT": "ALCX",
 }
 
 
 @pytest.fixture(
     params=[
-        "TOKE",
-        "USDC",
-        "GUSD",
+        # "TOKE",
+        # "USDC",
+        # "GUSD",
+        "AAVE",
+        "BAT",
     ],
     scope="session",
     autouse=True,
@@ -61,6 +71,8 @@ amounts = {
     "TOKE": 80_000,
     "USDC": 5_000_000,
     "GUSD": 1_000,
+    "AAVE": 2_500,
+    "BAT": 280_000,
 }
 
 
@@ -82,6 +94,8 @@ whale_address = {
     "LINK": "0x98C63b7B319dFBDF3d811530F2ab9DfE4983Af9D",
     "GNO": "0x4f8AD938eBA0CD19155a835f617317a6E788c868",
     "TOKE": "0x96F98Ed74639689C3A11daf38ef86E59F43417D3",
+    "AAVE": "0x4da27a545c0c5B758a6BA100e3a049001de870f5",
+    "BAT": "0x6C8c6b02E7b2BE14d4fA6022Dfd6d75921D90E4E",
 }
 
 
@@ -91,7 +105,7 @@ def whale(accounts, token_to_sell):
 
 
 @pytest.fixture
-def price_checker(UniV2PriceChecker, CurvePriceChecker, deployer, token_to_sell):
+def price_checker(UniV2PriceChecker, CurvePriceChecker, ChainlinkPriceChecker, deployer, token_to_sell):
     symbol = token_to_sell.symbol()
 
     if symbol == "TOKE":
@@ -100,6 +114,9 @@ def price_checker(UniV2PriceChecker, CurvePriceChecker, deployer, token_to_sell)
     if symbol == "USDC" or symbol == "GUSD":
         curve_price_checker = deployer.deploy(CurvePriceChecker)
         yield curve_price_checker
+    if symbol == "AAVE" or symbol == "BAT":
+        chainlink_price_checker = deployer.deploy(ChainlinkPriceChecker)
+        yield chainlink_price_checker
 
 
 # which price checker data to use for each swap
@@ -107,6 +124,8 @@ price_checker_datas = {
     "TOKE": encode_abi(["uint8"], [int(0)]),  # doesn't matter
     "USDC": encode_abi(["uint8"], [int(0)]),  # default slippage
     "GUSD": encode_abi(["uint256"], [int(500)]),  # 5% slippage to allow for gas
+    "AAVE": encode_abi(["uint256", "address[]"], [int(0), ["0x6Df09E975c830ECae5bd4eD9d90f3A95a4f88012"]]), # AAVE/ETH feed
+    "BAT": encode_abi(["uint256", "address[]"], [int(700), ["0x0d16d4528239e9ee52fa531af613acdb23d88c94", "0x194a9aaf2e0b67c35915cd01101585a33fe25caa"]]), # BAT/ETH & ALCX/ETH feeds, allow 7% slippage since these are relatively illiquid
 }
 
 
