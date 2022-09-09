@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../../interfaces/IPriceChecker.sol";
+import "./PriceCheckerLib.sol";
 
 interface IAddressProvider {
     function get_registry() external view returns (address);
@@ -68,11 +69,7 @@ contract CurvePriceChecker is IPriceChecker {
         require(_pool != address(0)); // dev: no Curve pool for this swap
 
         uint256 _maxSlippage = abi.decode(_data, (uint256));
-        require(_maxSlippage <= 10_000); // dev: max slippage too high
-
-        if (_maxSlippage == 0) {
-            _maxSlippage = 100;
-        }
+        _maxSlippage = PriceCheckerLib.getMaxSlippage(_maxSlippage, 100); // 1% default
 
         int128 _i;
         int128 _j;
@@ -101,13 +98,11 @@ contract CurvePriceChecker is IPriceChecker {
             _amountIn
         );
 
-        // within max slippage on either side
-        if (
-            _minOut >
-            _expectedOut.mul(MAX_BPS.sub(_maxSlippage)).div(MAX_BPS) &&
-            _minOut < _expectedOut.mul(MAX_BPS.add(_maxSlippage)).div(MAX_BPS)
-        ) {
-            _isPriceGood = true;
-        }
+        return
+            PriceCheckerLib.isMinOutAcceptable(
+                _minOut,
+                _expectedOut,
+                _maxSlippage
+            );
     }
 }

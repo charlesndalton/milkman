@@ -50,10 +50,10 @@ sell_to_buy_map = {
 @pytest.fixture(
     params=[
         # "TOKE",
-        # "USDC",
-        # "GUSD",
-        "AAVE",
-        "BAT",
+        "USDC",
+        "GUSD",
+        # "AAVE",
+        # "BAT",
     ],
     scope="session",
     autouse=True,
