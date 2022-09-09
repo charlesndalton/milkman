@@ -5,6 +5,8 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import "./PriceCheckerLib.sol";
+
 import "../../interfaces/IPriceChecker.sol";
 
 interface IPriceFeed {
@@ -50,10 +52,7 @@ contract ChainlinkPriceChecker is IPriceChecker {
             bool[] memory _reverses
         ) = abi.decode(_data, (uint256, address[], bool[]));
 
-        if (_maxSlippage == 0) {
-            _maxSlippage = 300;
-        }
-        require(_maxSlippage <= 10_000); // dev: max slippage too high
+        _maxSlippage = PriceCheckerLib.getMaxSlippage(_maxSlippage, 300);
 
         uint256 _expectedOutFromChainlink = getExpectedOutFromChainlink(
             _priceFeeds,
@@ -61,11 +60,7 @@ contract ChainlinkPriceChecker is IPriceChecker {
             _amountIn
         ); // how much Chainlink says we'd get out of this trade
 
-        return
-            _expectedOutFromChainlink.mul(MAX_BPS - _maxSlippage).div(MAX_BPS) <
-            _minOut &&
-            _minOut <
-            _expectedOutFromChainlink.mul(MAX_BPS + _maxSlippage).div(MAX_BPS);
+        return PriceCheckerLib.isMinOutAcceptable(_minOut, _expectedOutFromChainlink, _maxSlippage);
     }
 
     function getExpectedOutFromChainlink(

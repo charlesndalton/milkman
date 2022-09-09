@@ -49,9 +49,9 @@ sell_to_buy_map = {
 
 @pytest.fixture(
     params=[
-        "TOKE",
-        "USDC",
-        "GUSD",
+        # "TOKE",
+        # "USDC",
+        # "GUSD",
         "AAVE",
         "BAT",
     ],
