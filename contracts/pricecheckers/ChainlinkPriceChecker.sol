@@ -60,7 +60,12 @@ contract ChainlinkPriceChecker is IPriceChecker {
             _amountIn
         ); // how much Chainlink says we'd get out of this trade
 
-        return PriceCheckerLib.isMinOutAcceptable(_minOut, _expectedOutFromChainlink, _maxSlippage);
+        return
+            PriceCheckerLib.isMinOutAcceptable(
+                _minOut,
+                _expectedOutFromChainlink,
+                _maxSlippage
+            );
     }
 
     function getExpectedOutFromChainlink(

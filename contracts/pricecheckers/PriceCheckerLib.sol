@@ -9,7 +9,10 @@ library PriceCheckerLib {
 
     uint256 internal constant MAX_BPS = 10_000;
 
-    function getMaxSlippage(uint256 _inputMaxSlippage, uint256 _defaultMaxSlippage) internal pure returns (uint256) {
+    function getMaxSlippage(
+        uint256 _inputMaxSlippage,
+        uint256 _defaultMaxSlippage
+    ) internal pure returns (uint256) {
         require(_inputMaxSlippage <= 10_000); // dev: max slippage too high
 
         if (_inputMaxSlippage == 0) {
@@ -20,8 +23,19 @@ library PriceCheckerLib {
     }
 
     /// @dev performs a double-ended slippage check, ensuring that minOut is both greater than market value - max slippage and less than market value + max slippage.
-    function isMinOutAcceptable(uint256 _minOut, uint256 _marketValueOfAmountIn, uint256 _maxSlippageInBips) internal pure returns (bool) {
-        return _minOut > _marketValueOfAmountIn.mul(MAX_BPS.sub(_maxSlippageInBips)).div(MAX_BPS) &&
-               _minOut < _marketValueOfAmountIn.mul(MAX_BPS.add(_maxSlippageInBips)).div(MAX_BPS);
-    } 
+    function isMinOutAcceptable(
+        uint256 _minOut,
+        uint256 _marketValueOfAmountIn,
+        uint256 _maxSlippageInBips
+    ) internal pure returns (bool) {
+        return
+            _minOut >
+            _marketValueOfAmountIn.mul(MAX_BPS.sub(_maxSlippageInBips)).div(
+                MAX_BPS
+            ) &&
+            _minOut <
+            _marketValueOfAmountIn.mul(MAX_BPS.add(_maxSlippageInBips)).div(
+                MAX_BPS
+            );
+    }
 }
