@@ -64,7 +64,7 @@ contract CurvePriceChecker is IPriceChecker {
         address _toToken,
         uint256 _minOut,
         bytes calldata _data
-    ) external view override returns (bool _isPriceGood) {
+    ) external view override returns (bool) {
         address _pool = registry.find_pool_for_coins(_fromToken, _toToken);
         require(_pool != address(0)); // dev: no Curve pool for this swap
 

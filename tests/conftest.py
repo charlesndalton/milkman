@@ -24,8 +24,8 @@ def deployer(accounts):
 # GUSD -> USDC, $1k, Curve price checker
 # AAVE -> WETH, $250k, Chainlink price checker
 # BAT -> ALCX, $100k, Chainlink price checker
-# aREP (Aave REP) -> YFI, $100 & 1inch as the price checker
 # WETH -> WBTC, $80M & Uniswap as the price checker
+# UNI -> USDT, $500k & Uniswap as the price checker
 token_address = {
     "TOKE": "0x2e9d63788249371f1DFC918a52f8d799F4a38C94",
     "DAI": "0x6b175474e89094c44da98b954eedeac495271d0f",
@@ -36,6 +36,8 @@ token_address = {
     "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
     "BAT": "0x0D8775F648430679A709E98d2b0Cb6250d2887EF",
     "ALCX": "0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF",
+    "WBTC": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+    "UNI": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
 }
 
 sell_to_buy_map = {
@@ -44,16 +46,20 @@ sell_to_buy_map = {
     "GUSD": "USDC",
     "AAVE": "WETH",
     "BAT": "ALCX",
+    "WETH": "WBTC",
+    "UNI": "USDT",
 }
 
 
 @pytest.fixture(
     params=[
         # "TOKE",
-        "USDC",
-        "GUSD",
+        # "USDC",
+        # "GUSD",
         # "AAVE",
         # "BAT",
+        "WETH",
+        # "UNI",
     ],
     scope="session",
     autouse=True,
@@ -73,6 +79,8 @@ amounts = {
     "GUSD": 1_000,
     "AAVE": 2_500,
     "BAT": 280_000,
+    "WETH": 50_000,
+    "UNI": 80_000,
 }
 
 
@@ -96,6 +104,7 @@ whale_address = {
     "TOKE": "0x96F98Ed74639689C3A11daf38ef86E59F43417D3",
     "AAVE": "0x4da27a545c0c5B758a6BA100e3a049001de870f5",
     "BAT": "0x6C8c6b02E7b2BE14d4fA6022Dfd6d75921D90E4E",
+    "UNI": "0x1a9C8182C09F50C8318d769245beA52c32BE35BC",
 }
 
 
@@ -105,7 +114,7 @@ def whale(accounts, token_to_sell):
 
 
 @pytest.fixture
-def price_checker(UniV2PriceChecker, CurvePriceChecker, ChainlinkPriceChecker, deployer, token_to_sell):
+def price_checker(UniV2PriceChecker, CurvePriceChecker, ChainlinkPriceChecker, UniV3PriceChecker, deployer, token_to_sell):
     symbol = token_to_sell.symbol()
 
     if symbol == "TOKE":
@@ -117,6 +126,10 @@ def price_checker(UniV2PriceChecker, CurvePriceChecker, ChainlinkPriceChecker, d
     if symbol == "AAVE" or symbol == "BAT":
         chainlink_price_checker = deployer.deploy(ChainlinkPriceChecker)
         yield chainlink_price_checker
+    if symbol == "WETH" or symbol == "UNI":
+        univ3_price_checker = deployer.deploy(UniV3PriceChecker)
+        yield univ3_price_checker
+    
 
 
 # which price checker data to use for each swap
@@ -126,6 +139,8 @@ price_checker_datas = {
     "GUSD": encode_abi(["uint256"], [int(500)]),  # 5% slippage to allow for gas
     "AAVE": encode_abi(["uint256", "address[]", "bool[]"], [int(0), ["0x6Df09E975c830ECae5bd4eD9d90f3A95a4f88012"], [False]]), # AAVE/ETH feed
     "BAT": encode_abi(["uint256", "address[]", "bool[]"], [int(700), ["0x0d16d4528239e9ee52fa531af613acdb23d88c94", "0x194a9aaf2e0b67c35915cd01101585a33fe25caa"], [False, True]]), # BAT/ETH & ALCX/ETH feeds, allow 7% slippage since these are relatively illiquid
+    "WETH": encode_abi(["uint256", "address[]", "uint24[]"], [int(800), [token_address["WETH"], token_address["WBTC"]], [int(30)]]), # 8% slippage reasonable for such a large trade
+    "UNI": encode_abi(["uint256", "address[]", "uint24[]"], [int(0), [token_address["UNI"], token_address["WETH"], token_address["USDC"], token_address["USDT"]], [int(30), int(30), int(1)]]), # default slippage
 }
 
 
