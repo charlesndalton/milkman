@@ -2,11 +2,11 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
 import {GPv2Order} from "@cow-protocol/contracts/libraries/GPv2Order.sol";
+import {IERC20} from "@cow-protocol/contracts/interfaces/IERC20.sol";
 
 import {IGPv2Settlement} from "../interfaces/IGPv2Settlement.sol";
 import {IPriceChecker} from "../interfaces/IPriceChecker.sol";
@@ -37,10 +37,10 @@ contract Milkman {
     event SwapExecuted(bytes32 swapID);
     event SwapCancelled(bytes32 swapID);
 
-    // global nonce that is incremented after every swap request
-    uint256 public nonce;
-    // map swap ID => empty if not active, bytes(1) if requested but not paired, and packed blockNumber,orderUID if paired
-    mapping(bytes32 => bytes) public swaps;
+    bytes32 internal swapHash;
+
+    bool internal isOriginal = true;
+    bool internal isInitialized; // clones set this to true
 
     // Who we give allowance
     address internal constant gnosisVaultRelayer =
@@ -77,103 +77,77 @@ contract Milkman {
         address _priceChecker,
         bytes calldata _priceCheckerData
     ) external {
-        _fromToken.safeTransferFrom(msg.sender, address(this), _amountIn);
+        require(isOriginal); // dev: can't request swap from order contract
 
-        // Assumption: relayer allowance always either 0 or so high that it will never need to be set again
-        if (_fromToken.allowance(address(this), gnosisVaultRelayer) == 0) {
-            _fromToken.safeApprove(gnosisVaultRelayer, type(uint256).max);
-        }
+        address _orderContract = createOrderContract();
 
-        uint256 _nonce = nonce;
-        nonce += 1;
+        // transfer from needs to happen before initialize to prevent re-entrancy
 
-        bytes32 _swapID = keccak256(
+        _fromToken.transferFrom(msg.sender, _orderContract, _amountIn); // TODO: figure out how to make this a safeTransfer
+
+        bytes32 _swapHash = keccak256(
             abi.encode(
-                msg.sender,
                 _to,
                 _fromToken,
                 _toToken,
                 _amountIn,
                 _priceChecker,
-                _priceCheckerData,
-                _nonce
+                _priceCheckerData
             )
         );
 
-        swaps[_swapID] = abi.encode(1);
+        Milkman(_orderContract).initialize(_fromToken, _swapHash);
 
-        emit SwapRequested(
-            _swapID,
-            msg.sender,
-            _to,
-            _fromToken,
-            _toToken,
-            _amountIn,
-            _priceChecker,
-            _priceCheckerData,
-            _nonce
-        );
+        // emit SwapRequested(
+        //     msg.sender,
+        //     _to,
+        //     _fromToken,
+        //     _toToken,
+        //     _amountIn,
+        //     _priceChecker,
+        //     _priceCheckerData,
+        //     _orderContract
+        // );
     }
 
-    /// @notice Pair a requested swap against a CoW Protocol order that was generated via the API.
-    /// @dev After the order passes a host of checks, milkman signs it via the 'setPreSignature' function.
-    /// @param _order CoW Protocol order.
-    /// @param _user The account that requested this swap.
-    /// @param _priceChecker The priceChecker that the user input in their swap request.
-    /// @param _nonce The nonce of the swap request.
-    function pairSwap(
-        GPv2Order.Data calldata _order,
-        address _user,
-        address _priceChecker,
-        bytes calldata _priceCheckerData,
-        uint256 _nonce
-    ) external {
-        bytes32 _orderDigest = _order.hash(domainSeparator);
+    function initialize(IERC20 _fromToken, bytes32 _swapHash) external {
+        require(!isOriginal); // dev: should only be called on order contracts
+        require(!isInitialized); // dev: cannot re-initialize an order contract
 
-        bytes memory _orderUid = new bytes(UID_LENGTH);
+        isInitialized = true;
 
-        _orderUid.packOrderUidParams(
-            _orderDigest,
-            address(this),
-            _order.validTo
-        );
+        _fromToken.approve(gnosisVaultRelayer, type(uint256).max);
 
-        bytes32 _swapID = keccak256(
-            abi.encode(
-                _user,
-                _order.receiver,
-                _order.sellToken,
-                _order.buyToken,
-                _order.sellAmount.add(_order.feeAmount),
-                _priceChecker,
-                _priceCheckerData,
-                _nonce
-            )
-        );
+        swapHash = _swapHash;
+    }
 
-        bytes memory _swapData = swaps[_swapID];
-        require(
-            _swapData.length == 32 && _swapData[31] == bytes1(uint8(1)),
-            "!swap_requested"
-        );
+    /// @param _encodedOrder [all fields in GPv2Order.Data, priceChecker, priceCheckerData]
+    function isValidSignature(
+        bytes32 _orderDigest, // _orderDigest is TRUSTED
+        bytes calldata _encodedOrder // _encodedOrder is UNTRUSTED
+    ) external view returns (bytes4) {
+        // require(msg.sender == address(settlement)); // dev: the settlement contract must call
+
+        (
+            GPv2Order.Data memory _order,
+            address _priceChecker,
+            bytes memory _priceCheckerData
+        ) = decodeOrder(_encodedOrder);
+
+        require(_order.hash(domainSeparator) == _orderDigest, "!match");
 
         require(_order.kind == KIND_SELL, "!kind_sell");
 
         require(
             _order.validTo >= block.timestamp + 5 minutes,
             "expires_too_soon"
-        );
+        ); // we might not need this anymore, since the griefing attack doesn't really make sense when multiple orders can be active at the same time
 
         require(!_order.partiallyFillable, "!fill_or_kill");
 
         require(_order.sellTokenBalance == BALANCE_ERC20, "!sell_erc20");
 
         require(_order.buyTokenBalance == BALANCE_ERC20, "!buy_erc20");
-
-        require(settlement.filledAmount(_orderUid) == 0, "!unique");
-
-        // putting this before the priceChecker call prevents re-entrancy
-        swaps[_swapID] = abi.encode(block.number, _orderUid);
 
         if (_priceChecker != address(0)) {
             require(
@@ -188,89 +162,106 @@ contract Milkman {
             );
         }
 
-        settlement.setPreSignature(_orderUid, true);
-
-        emit SwapPaired(_swapID, _orderUid, block.number);
-    }
-
-    /// @notice Unpair a swap by proving that it hasn't been executed within the alloted 50 blocks.
-    /// @param _swapID The ID of this swap request, generated by hashing its parameters with a nonce.
-    function unpairSwap(bytes32 _swapID) external {
-        (uint256 _blockNumberWhenPaired, bytes memory _orderUid) = abi.decode(
-            swaps[_swapID],
-            (uint256, bytes)
-        );
-
-        require(
-            block.number >= _blockNumberWhenPaired + 50 &&
-                settlement.filledAmount(_orderUid) == 0 &&
-                _blockNumberWhenPaired != 0, // last check to ensure that the swap exists at all
-            "!unpairable"
-        );
-
-        settlement.setPreSignature(_orderUid, false);
-
-        swaps[_swapID] = abi.encode(1);
-
-        emit SwapUnpaired(_swapID);
-    }
-
-    /// @notice Prove that a paired swap has been executed (reverts if it hasn't).
-    /// @dev This serves no standalone purpose other than deleting storage, but it could be used by a wrapper keep3r contract.
-    /// @param _swapID The ID of this swap request, generated by hashing its parameters with a nonce.
-    function proveExecuted(bytes32 _swapID) external {
-        (, bytes memory _orderUid) = abi.decode(
-            swaps[_swapID],
-            (uint256, bytes)
-        );
-
-        require(settlement.filledAmount(_orderUid) != 0, "!executed");
-
-        delete swaps[_swapID];
-
-        emit SwapExecuted(_swapID);
-    }
-
-    /// @notice Cancel a requested swap, returning funds to the user.
-    /// @dev This is useful if for some reason the swap can't be processed by CoW Protocol, e.g., if there's no market for either the _fromToken or the _toToken.
-    /// @param _amountIn _amountIn passed in the swap request.
-    /// @param _fromToken _fromToken passed in the swap request.
-    /// @param _toToken _toToken passed in the swap request.
-    /// @param _to _to passed in the swap request.
-    /// @param _priceChecker _priceChecker passed in the swap request.
-    /// @param _nonce _nonce of this swap request.
-    function cancelSwapRequest(
-        uint256 _amountIn,
-        IERC20 _fromToken,
-        IERC20 _toToken,
-        address _to,
-        address _priceChecker,
-        bytes calldata _priceCheckerData,
-        uint256 _nonce
-    ) external {
-        bytes32 _swapID = keccak256(
+        bytes32 _swapHash = keccak256(
             abi.encode(
-                msg.sender,
-                _to,
-                _fromToken,
-                _toToken,
-                _amountIn,
+                _order.receiver,
+                _order.sellToken,
+                _order.buyToken,
+                _order.sellAmount.add(_order.feeAmount),
                 _priceChecker,
-                _priceCheckerData,
-                _nonce
+                _priceCheckerData
             )
         );
 
-        bytes memory _swapData = swaps[_swapID];
-        require(
-            _swapData.length == 32 && _swapData[31] == bytes1(uint8(1)),
-            "!swap_requested"
+        if (_swapHash == swapHash) {
+            // should be true as long as the keeper isn't submitting bad orders
+            return 0x1626ba7e; // magic number
+        } else {
+            return 0xffffffff;
+        }
+    }
+
+    function decodeOrder(bytes memory _encodedOrder)
+        internal
+        pure
+        returns (
+            GPv2Order.Data memory,
+            address,
+            bytes memory
+        )
+    {
+        (
+            address _sellToken,
+            address _buyToken,
+            address _receiver,
+            uint256 _sellAmount,
+            uint256 _buyAmount,
+            uint32 _validTo,
+            bytes32 _appData,
+            uint256 _feeAmount,
+            bytes32 _kind,
+            bool _partiallyFillable,
+            bytes32 _sellTokenBalance,
+            bytes32 _buyTokenBalance,
+            address _priceChecker,
+            bytes memory _priceCheckerData
+        ) = abi.decode(
+                _encodedOrder,
+                (
+                    address,
+                    address,
+                    address,
+                    uint256,
+                    uint256,
+                    uint32,
+                    bytes32,
+                    uint256,
+                    bytes32,
+                    bool,
+                    bytes32,
+                    bytes32,
+                    address,
+                    bytes
+                )
+            );
+
+        return (
+            GPv2Order.Data(
+                IERC20(_sellToken),
+                IERC20(_buyToken),
+                _receiver,
+                _sellAmount,
+                _buyAmount,
+                _validTo,
+                _appData,
+                _feeAmount,
+                _kind,
+                _partiallyFillable,
+                _sellTokenBalance,
+                _buyTokenBalance
+            ),
+            _priceChecker,
+            _priceCheckerData
         );
+    }
 
-        delete swaps[_swapID];
+    function createOrderContract() internal returns (address _orderContract) {
+        // Copied from https://github.com/optionality/clone-factory/blob/master/contracts/CloneFactory.sol
 
-        _fromToken.safeTransfer(msg.sender, _amountIn);
-
-        emit SwapCancelled(_swapID);
+        bytes20 addressBytes = bytes20(address(this));
+        assembly {
+            // EIP-1167 bytecode
+            let clone_code := mload(0x40)
+            mstore(
+                clone_code,
+                0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000
+            )
+            mstore(add(clone_code, 0x14), addressBytes)
+            mstore(
+                add(clone_code, 0x28),
+                0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000
+            )
+            _orderContract := create(0, clone_code, 0x37)
+        }
     }
 }
