@@ -6,67 +6,55 @@ import time
 
 
 def check_swap_requested(
-    milkman,
-    user,
+    order_contract,
     receiver,
     from_token,
     to_token,
     amount,
     price_checker,
     price_checker_data,
-    nonce,
 ):
     # user, receiver, from_token, to_token, amount_in, price_checker, price_checker_data, nonce
     encoded_market_order = encode_market_order(
-        user,
         receiver,
         from_token,
         to_token,
         amount,
         price_checker,
         price_checker_data,
-        nonce,
     )
-    swap_id = keccak(encoded_market_order)
-    swap_data = milkman.swaps(swap_id)
+    swap_hash = keccak(encoded_market_order)
 
-    swap_requested_data = encode_abi(["uint256"], [int(1)])
+    print(f"Swap Hash: {order_contract.swapHash().hex()}")
+    print(f"Calculated Swap Hash: {swap_hash.hex()}")
 
-    print(f"Swap Data: {swap_data}")
-    print(f"Swap Requested Data: {swap_requested_data}")
-    assert swap_data.hex() == swap_requested_data.hex()
+    assert order_contract.swapHash().hex() == swap_hash.hex()
 
 
 def encode_market_order(
-    user,
     receiver,
     from_token,
     to_token,
     amount,
     price_checker,
     price_checker_data,
-    nonce,
 ):
     return encode_abi(
         [
             "address",
             "address",
             "address",
-            "address",
             "uint256",
             "address",
             "bytes",
-            "uint256",
         ],
         [
-            user.address,
             receiver.address,
             from_token.address,
             to_token.address,
             amount,
             price_checker.address,
             price_checker_data,
-            nonce,
         ],
     )
 
