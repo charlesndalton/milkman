@@ -160,8 +160,8 @@ price_checker_datas = {
     ),  # BAT/ETH & ALCX/ETH feeds, allow 7% slippage since these are relatively illiquid
     "WETH": encode_abi(
         ["uint256", "address[]", "uint24[]"],
-        [int(800), [token_address["WETH"], token_address["WBTC"]], [int(30)]],
-    ),  # 8% slippage reasonable for such a large trade
+        [int(1400), [token_address["WETH"], token_address["WBTC"]], [int(30)]],
+    ),  # 14% slippage for such a large trade
     "UNI": encode_abi(
         ["uint256", "address[]", "uint24[]"],
         [

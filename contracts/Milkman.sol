@@ -37,6 +37,8 @@ contract Milkman {
     /// @dev CoW protocol representation of an order being fulfilled with the ERC20 balance of the sender, instead of some alternate means (e.g., balance in the Balancer Vault).
     bytes32 internal constant BALANCE_ERC20 =
         hex"5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9";
+    bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
+    bytes4 internal constant NON_MAGIC_VALUE = 0xffffffff;
 
     /// @dev Hash of the swap data. Only set for non-clones.
     bytes32 public swapHash;
@@ -117,18 +119,18 @@ contract Milkman {
 
         require(_order.buyTokenBalance == BALANCE_ERC20, "!buy_erc20");
 
-        // if (_priceChecker != address(0)) {
-        //     require(
-        //         IPriceChecker(_priceChecker).checkPrice(
-        //             _order.sellAmount.add(_order.feeAmount),
-        //             address(_order.sellToken),
-        //             address(_order.buyToken),
-        //             _order.buyAmount,
-        //             _priceCheckerData
-        //         ),
-        //         "invalid_min_out"
-        //     );
-        // }
+        if (_priceChecker != address(0)) {
+            require(
+                IPriceChecker(_priceChecker).checkPrice(
+                    _order.sellAmount.add(_order.feeAmount),
+                    address(_order.sellToken),
+                    address(_order.buyToken),
+                    _order.buyAmount,
+                    _priceCheckerData
+                ),
+                "invalid_min_out"
+            );
+        }
 
         bytes32 _swapHash = keccak256(
             abi.encode(
@@ -143,9 +145,9 @@ contract Milkman {
 
         if (_swapHash == swapHash) {
             // should be true as long as the keeper isn't submitting bad orders
-            return 0x1626ba7e; // magic number
+            return MAGIC_VALUE;
         } else {
-            return 0xffffffff;
+            return NON_MAGIC_VALUE;
         }
     }
 

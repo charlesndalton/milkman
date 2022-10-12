@@ -55,8 +55,6 @@ def test_complete_swap(
 
     valid_to = chain.time() + 60 * 60 * 24
 
-    # assert False
-
     signature_encoded_order = utils.encode_order_for_is_valid_signature(
         token_to_sell,
         token_to_buy,
@@ -69,6 +67,7 @@ def test_complete_swap(
         price_checker_data,
     )
 
+    # we can't create orders via API, so we need to fake it
     gpv2_order = (
         token_to_sell.address,
         token_to_buy.address,
@@ -92,6 +91,4 @@ def test_complete_swap(
         order_digest, signature_encoded_order, {"from": settlement_account}
     )
 
-    # for now, we can't create orders via API, so we need to fake it
-
-    assert False
+    assert to_bytes(is_valid_sig) == to_bytes(utils.EIP_1271_MAGIC_VALUE)
