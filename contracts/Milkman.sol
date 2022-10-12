@@ -96,8 +96,6 @@ contract Milkman {
         view
         returns (bytes4)
     {
-        require(msg.sender == address(SETTLEMENT)); // dev: the settlement contract must call
-
         (
             GPv2Order.Data memory _order,
             address _priceChecker,

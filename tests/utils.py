@@ -7,7 +7,10 @@ from brownie.convert import to_bytes
 
 APP_DATA = "0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24"  # maps to https://bafybeiblq2ko2maieeuvtbzaqyhi5fzpa6vbbwnydsxbnsqoft5si5b6eq.ipfs.dweb.link
 KIND_SELL = "0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775"
+KIND_BUY = "0x6ed88e868af0a1983e3886d5f3e95a2fafbd6c3450bc229e27342283dc429ccc"
 ERC20_BALANCE = "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9"
+BALANCE_EXTERNAL = "0xabee3b73373acd583a130924aad6dc38cfdc44ba0555ba94ce2ff63980ea0632"
+BALANCE_INTERNAL = "0x4ac99ace14ee0a5ef932dc609df0943ab7ac16b7583634612f8dc35a4289a6ce"
 DOMAIN_SEPARATOR = "0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943"
 EIP_1271_MAGIC_VALUE = "0x1626ba7e"
 
@@ -119,6 +122,10 @@ def encode_order_for_is_valid_signature(
     fee_amount,
     price_checker,
     price_checker_data,
+    buy_or_sell=KIND_SELL,
+    sell_token_balance=ERC20_BALANCE,
+    buy_token_balance=ERC20_BALANCE,
+    partially_fillable=False,
 ):
     return encode_abi(
         [
@@ -146,10 +153,10 @@ def encode_order_for_is_valid_signature(
             valid_to,
             to_bytes(APP_DATA, "bytes32"),
             fee_amount,
-            to_bytes(KIND_SELL, "bytes32"),
-            False,
-            to_bytes(ERC20_BALANCE, "bytes32"),
-            to_bytes(ERC20_BALANCE, "bytes32"),
+            to_bytes(buy_or_sell, "bytes32"),
+            partially_fillable,
+            to_bytes(sell_token_balance, "bytes32"),
+            to_bytes(buy_token_balance, "bytes32"),
             price_checker.address,
             price_checker_data,
         ],
