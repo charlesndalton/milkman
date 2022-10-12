@@ -114,7 +114,14 @@ def whale(accounts, token_to_sell):
 
 
 @pytest.fixture
-def price_checker(UniV2PriceChecker, CurvePriceChecker, ChainlinkPriceChecker, UniV3PriceChecker, deployer, token_to_sell):
+def price_checker(
+    UniV2PriceChecker,
+    CurvePriceChecker,
+    ChainlinkPriceChecker,
+    UniV3PriceChecker,
+    deployer,
+    token_to_sell,
+):
     symbol = token_to_sell.symbol()
 
     if symbol == "TOKE":
@@ -129,7 +136,6 @@ def price_checker(UniV2PriceChecker, CurvePriceChecker, ChainlinkPriceChecker, U
     if symbol == "WETH" or symbol == "UNI":
         univ3_price_checker = deployer.deploy(UniV3PriceChecker)
         yield univ3_price_checker
-    
 
 
 # which price checker data to use for each swap
@@ -137,10 +143,38 @@ price_checker_datas = {
     "TOKE": encode_abi(["uint8"], [int(0)]),  # doesn't matter
     "USDC": encode_abi(["uint8"], [int(0)]),  # default slippage
     "GUSD": encode_abi(["uint256"], [int(500)]),  # 5% slippage to allow for gas
-    "AAVE": encode_abi(["uint256", "address[]", "bool[]"], [int(0), ["0x6Df09E975c830ECae5bd4eD9d90f3A95a4f88012"], [False]]), # AAVE/ETH feed
-    "BAT": encode_abi(["uint256", "address[]", "bool[]"], [int(700), ["0x0d16d4528239e9ee52fa531af613acdb23d88c94", "0x194a9aaf2e0b67c35915cd01101585a33fe25caa"], [False, True]]), # BAT/ETH & ALCX/ETH feeds, allow 7% slippage since these are relatively illiquid
-    "WETH": encode_abi(["uint256", "address[]", "uint24[]"], [int(800), [token_address["WETH"], token_address["WBTC"]], [int(30)]]), # 8% slippage reasonable for such a large trade
-    "UNI": encode_abi(["uint256", "address[]", "uint24[]"], [int(0), [token_address["UNI"], token_address["WETH"], token_address["USDC"], token_address["USDT"]], [int(30), int(30), int(1)]]), # default slippage
+    "AAVE": encode_abi(
+        ["uint256", "address[]", "bool[]"],
+        [int(0), ["0x6Df09E975c830ECae5bd4eD9d90f3A95a4f88012"], [False]],
+    ),  # AAVE/ETH feed
+    "BAT": encode_abi(
+        ["uint256", "address[]", "bool[]"],
+        [
+            int(700),
+            [
+                "0x0d16d4528239e9ee52fa531af613acdb23d88c94",
+                "0x194a9aaf2e0b67c35915cd01101585a33fe25caa",
+            ],
+            [False, True],
+        ],
+    ),  # BAT/ETH & ALCX/ETH feeds, allow 7% slippage since these are relatively illiquid
+    "WETH": encode_abi(
+        ["uint256", "address[]", "uint24[]"],
+        [int(800), [token_address["WETH"], token_address["WBTC"]], [int(30)]],
+    ),  # 8% slippage reasonable for such a large trade
+    "UNI": encode_abi(
+        ["uint256", "address[]", "uint24[]"],
+        [
+            int(0),
+            [
+                token_address["UNI"],
+                token_address["WETH"],
+                token_address["USDC"],
+                token_address["USDT"],
+            ],
+            [int(30), int(30), int(1)],
+        ],
+    ),  # default slippage
 }
 
 
@@ -154,6 +188,13 @@ def milkman(Milkman, deployer):
     milkman = deployer.deploy(Milkman)
 
     yield milkman
+
+
+@pytest.fixture
+def hash_helper(HashHelper, deployer):
+    hash_helper = deployer.deploy(HashHelper)
+
+    yield hash_helper
 
 
 @pytest.fixture

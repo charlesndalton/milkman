@@ -25,7 +25,9 @@ def test_request_swap(
 
     assert tx.events.count("SwapRequested") == 1
 
-    order_contract = Contract.from_abi("Milkman", tx.events["SwapRequested"]["orderContract"], milkman.abi)
+    order_contract = Contract.from_abi(
+        "Milkman", tx.events["SwapRequested"]["orderContract"], milkman.abi
+    )
 
     utils.check_swap_requested(
         order_contract,
@@ -63,7 +65,9 @@ def test_request_swap_twice(
 
     assert tx.events.count("SwapRequested") == 1
 
-    order_contract_1 = Contract.from_abi("Milkman", tx.events["SwapRequested"]["orderContract"], milkman.abi)
+    order_contract_1 = Contract.from_abi(
+        "Milkman", tx.events["SwapRequested"]["orderContract"], milkman.abi
+    )
 
     tx = milkman.requestSwapExactTokensForTokens(
         amount_for_each,
@@ -77,8 +81,9 @@ def test_request_swap_twice(
 
     assert tx.events.count("SwapRequested") == 1
 
-    order_contract_2 = Contract.from_abi("Milkman", tx.events["SwapRequested"]["orderContract"], milkman.abi)
-
+    order_contract_2 = Contract.from_abi(
+        "Milkman", tx.events["SwapRequested"]["orderContract"], milkman.abi
+    )
 
     utils.check_swap_requested(
         order_contract_1,
