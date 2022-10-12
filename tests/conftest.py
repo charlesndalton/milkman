@@ -53,13 +53,13 @@ sell_to_buy_map = {
 
 @pytest.fixture(
     params=[
-        # "TOKE",
-        # "USDC",
-        # "GUSD",
-        # "AAVE",
-        # "BAT",
+        "TOKE",
+        "USDC",
+        "GUSD",
+        "AAVE",
+        "BAT",
         "WETH",
-        # "UNI",
+        "UNI",
     ],
     scope="session",
     autouse=True,
@@ -150,14 +150,14 @@ price_checker_datas = {
     "BAT": encode_abi(
         ["uint256", "address[]", "bool[]"],
         [
-            int(700),
+            int(2000),
             [
                 "0x0d16d4528239e9ee52fa531af613acdb23d88c94",
                 "0x194a9aaf2e0b67c35915cd01101585a33fe25caa",
             ],
             [False, True],
         ],
-    ),  # BAT/ETH & ALCX/ETH feeds, allow 7% slippage since these are relatively illiquid
+    ),  # BAT/ETH & ALCX/ETH feeds, allow 10% slippage since these are relatively illiquid
     "WETH": encode_abi(
         ["uint256", "address[]", "uint24[]"],
         [int(1400), [token_address["WETH"], token_address["WBTC"]], [int(30)]],
