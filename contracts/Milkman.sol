@@ -123,6 +123,7 @@ contract Milkman {
                     _order.sellAmount.add(_order.feeAmount),
                     address(_order.sellToken),
                     address(_order.buyToken),
+                    _order.feeAmount,
                     _order.buyAmount,
                     _priceCheckerData
                 ),

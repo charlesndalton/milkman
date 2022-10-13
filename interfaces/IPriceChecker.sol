@@ -9,6 +9,7 @@ interface IPriceChecker {
         uint256 _amountIn,
         address _fromToken,
         address _toToken,
+        uint256 _feeAmount,
         uint256 _minOut,
         bytes calldata _data
     ) external view returns (bool);
