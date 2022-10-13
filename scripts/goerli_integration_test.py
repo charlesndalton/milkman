@@ -11,15 +11,16 @@ from brownie.convert import to_bytes
 APP_DATA = "0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24"  # maps to https://bafybeiblq2ko2maieeuvtbzaqyhi5fzpa6vbbwnydsxbnsqoft5si5b6eq.ipfs.dweb.link
 KIND_SELL = "0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775"
 ERC20_BALANCE = "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9"
-DOMAIN_SEPARATOR = "0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943"
+DOMAIN_SEPARATOR = "0xfb378b35457022ecc5709ae5dafad9393c1387ae6d8ce24913a0c969074c07fb"
 EIP_1271_MAGIC_VALUE = "0x1626ba7e"
 
 
 def main():
     unscaled_weth_to_sell = 0.01
-    milkman = Contract("0x5655c0086B088b3B773b2056e788b8B434641872")
+    milkman = Contract("0xDB36Bd8D37caFB3DF523a4832707fE86cC855523")
     uni = Contract("0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984")
     weth = Contract("0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6")
+    hash_helper = Contract("0x429A101f42781C53c088392956c95F0A32437b8C")
 
     weth_to_sell = int(unscaled_weth_to_sell * 1e18)
 
@@ -50,13 +51,13 @@ def main():
     )
 
     order_contract = tx.events["SwapRequested"]["orderContract"]
-    print(order_contract)
+    print(f"order contract address: {order_contract}")
 
     # PART 2: KEEPER HANDLING
 
     (fee_amount, buy_amount_after_fee) = get_quote(weth, uni, weth_to_sell)
 
-    buy_amount_after_fee_with_slippage = int(buy_amount_after_fee * 0.90)
+    buy_amount_after_fee_with_slippage = int(buy_amount_after_fee * 0.995)
 
     signature = encode_order_for_is_valid_signature(
         weth,
@@ -74,8 +75,36 @@ def main():
 
     submit_offchain_order(order_contract, account, weth, uni, weth_to_sell - fee_amount, fee_amount, buy_amount_after_fee_with_slippage, valid_to, signature)
 
+    # PART 3: VERIFICATION 
+    gpv2_order = (
+        weth.address,
+        uni.address,
+        account.address,
+        weth_to_sell - fee_amount,
+        buy_amount_after_fee_with_slippage,
+        valid_to,
+        APP_DATA,
+        fee_amount,
+        KIND_SELL,
+        False,  # fill or kill
+        ERC20_BALANCE,
+        ERC20_BALANCE,
+    )
 
-# encode a market order in the way tha `signature`
+    order_digest = hash_helper.hash(
+        gpv2_order, to_bytes(DOMAIN_SEPARATOR, "bytes32")
+    )
+
+    print(f"order digest: {order_digest}")
+
+    is_valid_sig = Contract(order_contract).isValidSignature(
+        order_digest, signature_encoded_order
+    )
+
+    print(f"magic value?: {is_valid_sig}")
+
+
+# encode a market order in the way that Milkman's isValidSignature function accepts it
 def encode_order_for_is_valid_signature(
     sell_token,
     buy_token,
