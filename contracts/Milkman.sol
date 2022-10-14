@@ -21,7 +21,7 @@ contract Milkman {
 
     event SwapRequested(
         address orderContract,
-        address owner,
+        address orderCreator,
         uint256 amountIn,
         address fromToken,
         address toToken,
@@ -108,7 +108,7 @@ contract Milkman {
     }
 
     /// @notice Cancel a requested swap. May be useful if you try to swap a token that CoW doesn't support, for example.
-    /// @dev Passing in the other parameters is required to prove that `msg.sender` is the owner of this order, which is verified by hashing the parameters and checking if the digest matches `swapHash`.
+    /// @dev Passing in the other parameters is required to prove that `msg.sender` is the orderCreator of this order, which is verified by hashing the parameters and checking if the digest matches `swapHash`.
     function cancelSwap(
         uint256 amountIn,
         IERC20 fromToken,
@@ -129,7 +129,7 @@ contract Milkman {
             )
         );
 
-        require(_swapHash == swapHash, "!owner");
+        require(_swapHash == swapHash, "!orderCreator");
 
         fromToken.safeTransfer(msg.sender, amountIn);
     }
@@ -143,7 +143,7 @@ contract Milkman {
     {
         (
             GPv2Order.Data memory _order,
-            address _owner,
+            address _orderCreator,
             address _priceChecker,
             bytes memory _priceCheckerData
         ) = decodeOrder(encodedOrder);
@@ -179,7 +179,7 @@ contract Milkman {
 
         bytes32 _swapHash = keccak256(
             abi.encode(
-                _owner,
+                _orderCreator,
                 _order.receiver,
                 _order.sellToken,
                 _order.buyToken,
@@ -202,12 +202,12 @@ contract Milkman {
         pure
         returns (
             GPv2Order.Data memory _order,
-            address _owner,
+            address _orderCreator,
             address _priceChecker,
             bytes memory _priceCheckerData
         )
     {
-        (_order, _owner, _priceChecker, _priceCheckerData) = abi.decode(
+        (_order, _orderCreator, _priceChecker, _priceCheckerData) = abi.decode(
             _encodedOrder,
             (GPv2Order.Data, address, address, bytes)
         );
