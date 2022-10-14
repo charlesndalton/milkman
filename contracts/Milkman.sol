@@ -66,6 +66,7 @@ contract Milkman {
 
         bytes32 _swapHash = keccak256(
             abi.encode(
+                msg.sender,
                 to,
                 fromToken,
                 toToken,
@@ -89,6 +90,33 @@ contract Milkman {
         swapHash = _swapHash;
     }
 
+    /// @notice Cancel a requested swap. May be useful if you try to swap a token that CoW doesn't support, for example.
+    /// @dev Passing in the other parameters is required to prove that `msg.sender` is the owner of this order, which is verified by hashing the parameters and checking if the digest matches `swapHash`.
+    function cancelSwap(
+        uint256 amountIn,
+        IERC20 fromToken,
+        IERC20 toToken,
+        address to,
+        address priceChecker,
+        bytes calldata priceCheckerData
+    ) external {
+        bytes32 _swapHash = keccak256(
+            abi.encode(
+                msg.sender,
+                to,
+                fromToken,
+                toToken,
+                amountIn,
+                priceChecker,
+                priceCheckerData
+            )
+        );
+
+        require(_swapHash == swapHash, "!owner");
+
+        fromToken.safeTransfer(msg.sender, amountIn);
+    }
+
     /// @param orderDigest The EIP-712 signing digest derived from the order
     /// @param encodedOrder Bytes-encoded order information, originally created by an off-chain bot. Created by concatening the order data (in the form of GPv2Order.Data), the price checker address, and price checker data.
     function isValidSignature(bytes32 orderDigest, bytes calldata encodedOrder)
@@ -98,6 +126,7 @@ contract Milkman {
     {
         (
             GPv2Order.Data memory _order,
+            address _owner,
             address _priceChecker,
             bytes memory _priceCheckerData
         ) = decodeOrder(encodedOrder);
@@ -133,6 +162,7 @@ contract Milkman {
 
         bytes32 _swapHash = keccak256(
             abi.encode(
+                _owner,
                 _order.receiver,
                 _order.sellToken,
                 _order.buyToken,
@@ -155,16 +185,15 @@ contract Milkman {
         pure
         returns (
             GPv2Order.Data memory _order,
+            address _owner,
             address _priceChecker,
             bytes memory _priceCheckerData
         )
     {
-        (_order, _priceChecker, _priceCheckerData) = abi.decode(
+        (_order, _owner, _priceChecker, _priceCheckerData) = abi.decode(
             _encodedOrder,
-            (GPv2Order.Data, address, bytes)
+            (GPv2Order.Data, address, address, bytes)
         );
-
-        return (_order, _priceChecker, _priceCheckerData);
     }
 
     function createOrderContract() internal returns (address _orderContract) {

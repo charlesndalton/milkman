@@ -17,6 +17,7 @@ EIP_1271_MAGIC_VALUE = "0x1626ba7e"
 
 def check_swap_requested(
     order_contract,
+    order_owner,
     receiver,
     from_token,
     to_token,
@@ -26,6 +27,7 @@ def check_swap_requested(
 ):
     # user, receiver, from_token, to_token, amount_in, price_checker, price_checker_data, nonce
     encoded_market_order = encode_market_order_for_milkman(
+        order_owner,
         receiver,
         from_token,
         to_token,
@@ -43,6 +45,7 @@ def check_swap_requested(
 
 # encode a market order in the way that milkman encodes it as the swapHash pre-image
 def encode_market_order_for_milkman(
+    order_owner,
     receiver,
     from_token,
     to_token,
@@ -55,11 +58,13 @@ def encode_market_order_for_milkman(
             "address",
             "address",
             "address",
+            "address",
             "uint256",
             "address",
             "bytes",
         ],
         [
+            order_owner.address,
             receiver.address,
             from_token.address,
             to_token.address,
@@ -115,6 +120,7 @@ def encode_order_into_gpv2_order(
 def encode_order_for_is_valid_signature(
     sell_token,
     buy_token,
+    order_owner,
     receiver,
     sell_amount,
     buy_amount,
@@ -142,6 +148,7 @@ def encode_order_for_is_valid_signature(
             "bytes32",
             "bytes32",
             "address",
+            "address",
             "bytes",
         ],
         [
@@ -157,6 +164,7 @@ def encode_order_for_is_valid_signature(
             partially_fillable,
             to_bytes(sell_token_balance, "bytes32"),
             to_bytes(buy_token_balance, "bytes32"),
+            order_owner.address,
             price_checker.address,
             price_checker_data,
         ],

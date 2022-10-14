@@ -32,6 +32,7 @@ def test_request_swap(
     utils.check_swap_requested(
         order_contract,
         user,
+        user,
         token_to_sell,
         token_to_buy,
         amount,
@@ -88,6 +89,7 @@ def test_request_swap_twice(
     utils.check_swap_requested(
         order_contract_1,
         user,
+        user,
         token_to_sell,
         token_to_buy,
         amount_for_each,
@@ -96,6 +98,7 @@ def test_request_swap_twice(
     )
     utils.check_swap_requested(
         order_contract_2,
+        user,
         user,
         token_to_sell,
         token_to_buy,

@@ -39,6 +39,7 @@ def test_complete_swap(
     utils.check_swap_requested(
         order_contract,
         user,
+        user,
         token_to_sell,
         token_to_buy,
         amount,
@@ -55,6 +56,7 @@ def test_complete_swap(
     signature_encoded_order = utils.encode_order_for_is_valid_signature(
         token_to_sell,
         token_to_buy,
+        user,
         user,
         amount - fee_amount,
         buy_amount_after_fee,
@@ -124,6 +126,7 @@ def test_mismatched_order(
     utils.check_swap_requested(
         order_contract,
         user,
+        user,
         token_to_sell,
         token_to_buy,
         amount,
@@ -140,6 +143,7 @@ def test_mismatched_order(
     signature_encoded_order = utils.encode_order_for_is_valid_signature(
         token_to_sell,
         token_to_buy,
+        user,
         user,
         amount - fee_amount,
         buy_amount_after_fee,
@@ -206,6 +210,7 @@ def test_buy_order(
     utils.check_swap_requested(
         order_contract,
         user,
+        user,
         token_to_sell,
         token_to_buy,
         amount,
@@ -222,6 +227,7 @@ def test_buy_order(
     signature_encoded_order = utils.encode_order_for_is_valid_signature(
         token_to_sell,
         token_to_buy,
+        user,
         user,
         amount - fee_amount,
         buy_amount_after_fee,
@@ -287,6 +293,7 @@ def test_expires_too_soon_order(
     utils.check_swap_requested(
         order_contract,
         user,
+        user,
         token_to_sell,
         token_to_buy,
         amount,
@@ -303,6 +310,7 @@ def test_expires_too_soon_order(
     signature_encoded_order = utils.encode_order_for_is_valid_signature(
         token_to_sell,
         token_to_buy,
+        user,
         user,
         amount - fee_amount,
         buy_amount_after_fee,
@@ -368,6 +376,7 @@ def test_non_fill_or_kill_order(
     utils.check_swap_requested(
         order_contract,
         user,
+        user,
         token_to_sell,
         token_to_buy,
         amount,
@@ -384,6 +393,7 @@ def test_non_fill_or_kill_order(
     signature_encoded_order = utils.encode_order_for_is_valid_signature(
         token_to_sell,
         token_to_buy,
+        user,
         user,
         amount - fee_amount,
         buy_amount_after_fee,
@@ -449,6 +459,7 @@ def test_non_erc20_sell_order(
     utils.check_swap_requested(
         order_contract,
         user,
+        user,
         token_to_sell,
         token_to_buy,
         amount,
@@ -465,6 +476,7 @@ def test_non_erc20_sell_order(
     signature_encoded_order = utils.encode_order_for_is_valid_signature(
         token_to_sell,
         token_to_buy,
+        user,
         user,
         amount - fee_amount,
         buy_amount_after_fee,
@@ -530,6 +542,7 @@ def test_non_erc20_buy_order(
     utils.check_swap_requested(
         order_contract,
         user,
+        user,
         token_to_sell,
         token_to_buy,
         amount,
@@ -546,6 +559,7 @@ def test_non_erc20_buy_order(
     signature_encoded_order = utils.encode_order_for_is_valid_signature(
         token_to_sell,
         token_to_buy,
+        user,
         user,
         amount - fee_amount,
         buy_amount_after_fee,
