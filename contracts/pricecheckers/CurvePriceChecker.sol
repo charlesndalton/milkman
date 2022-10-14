@@ -62,18 +62,46 @@ contract CurvePriceChecker is IPriceChecker {
         uint256 _amountIn,
         address _fromToken,
         address _toToken,
+        uint256,
         uint256 _minOut,
         bytes calldata _data
     ) external view override returns (bool) {
         address _pool = registry.find_pool_for_coins(_fromToken, _toToken);
         require(_pool != address(0)); // dev: no Curve pool for this swap
 
-        uint256 _maxSlippage = abi.decode(_data, (uint256));
-        _maxSlippage = PriceCheckerLib.getMaxSlippage(_maxSlippage, 100); // 1% default
+        uint256 _maxSlippage = getMaxSlippage(_data);
+        uint256 _expectedOut = getExpectedOut(
+            _pool,
+            _fromToken,
+            _toToken,
+            _amountIn
+        );
 
+        return
+            PriceCheckerLib.isMinOutAcceptable(
+                _minOut,
+                _expectedOut,
+                _maxSlippage
+            );
+    }
+
+    function getMaxSlippage(bytes calldata _data)
+        internal
+        pure
+        returns (uint256 _maxSlippage)
+    {
+        _maxSlippage = abi.decode(_data, (uint256));
+        _maxSlippage = PriceCheckerLib.getMaxSlippage(_maxSlippage, 100); // 1% default
+    }
+
+    function getExpectedOut(
+        address _pool,
+        address _fromToken,
+        address _toToken,
+        uint256 _amountIn
+    ) internal view returns (uint256) {
         int128 _i;
         int128 _j;
-
         {
             // block scoping to prevent stack too deep
             address[8] memory _tokensInPool = registry.get_underlying_coins(
@@ -91,18 +119,6 @@ contract CurvePriceChecker is IPriceChecker {
             }
             require(_i != 0 || _j != 0); // dev: something went wrong
         }
-
-        uint256 _expectedOut = ICurvePool(_pool).get_dy_underlying(
-            _i,
-            _j,
-            _amountIn
-        );
-
-        return
-            PriceCheckerLib.isMinOutAcceptable(
-                _minOut,
-                _expectedOut,
-                _maxSlippage
-            );
+        return ICurvePool(_pool).get_dy_underlying(_i, _j, _amountIn);
     }
 }
