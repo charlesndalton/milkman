@@ -19,8 +19,16 @@ contract Milkman {
     using GPv2Order for bytes;
     using SafeMath for uint256;
 
-    event SwapRequested(address orderContract);
-    event SwapCancelled();
+    event SwapRequested(
+        address orderContract,
+        address owner,
+        uint256 amountIn,
+        address fromToken,
+        address toToken,
+        address to,
+        address priceChecker,
+        bytes priceCheckerData
+    );
 
     /// @dev The contract Milkman needs to give allowance.
     address internal constant VAULT_RELAYER =
@@ -78,7 +86,16 @@ contract Milkman {
 
         Milkman(orderContract).initialize(fromToken, _swapHash);
 
-        emit SwapRequested(orderContract);
+        emit SwapRequested(
+            orderContract,
+            msg.sender,
+            amountIn,
+            address(fromToken),
+            address(toToken),
+            to,
+            priceChecker,
+            priceCheckerData
+        );
     }
 
     function initialize(IERC20 fromToken, bytes32 _swapHash) external {
