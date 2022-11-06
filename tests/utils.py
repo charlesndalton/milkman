@@ -15,6 +15,8 @@ DOMAIN_SEPARATOR = "0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a6
 EIP_1271_MAGIC_VALUE = "0x1626ba7e"
 
 
+EMPTY_BYTES = encode_abi(["uint8"], [int(0)])
+
 def check_swap_requested(
     order_contract,
     order_owner,
@@ -326,3 +328,13 @@ def get_quote(sell_token, buy_token, sell_amount):
     buy_amount_after_fee = int(r.json()["buyAmountAfterFee"])
 
     return (fee_amount, buy_amount_after_fee)
+
+def dynamic_slippage_data(slippage_in_bips, data_bytes):
+    return encode_abi(
+        ["uint256", "bytes"],
+        [
+            int(slippage_in_bips),
+            data_bytes
+        ]
+    )
+

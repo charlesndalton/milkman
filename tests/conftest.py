@@ -1,13 +1,12 @@
 from brownie import Contract
 from eth_abi import encode_abi
 import pytest
+import utils
 
 
 @pytest.fixture(scope="function", autouse=True)
 def shared_setup(fn_isolation):
     pass
-
-# sushiswap = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F
 
 @pytest.fixture(scope="session", autouse=True)
 def user(accounts):
@@ -116,57 +115,82 @@ def whale(accounts, token_to_sell):
 
 @pytest.fixture
 def price_checker(
-    UniV2PriceChecker,
-    CurvePriceChecker,
-    ChainlinkPriceChecker,
-    UniV3PriceChecker,
-    deployer,
     token_to_sell,
+    sushiswap_price_checker,
+    curve_price_checker,
+    chainlink_price_checker,
+    univ3_price_checker,
 ):
     symbol = token_to_sell.symbol()
 
     if symbol == "TOKE":
-        univ2_price_checker = deployer.deploy(UniV2PriceChecker)
-        yield univ2_price_checker
+        yield sushiswap_price_checker
     if symbol == "USDC" or symbol == "GUSD":
-        curve_price_checker = deployer.deploy(CurvePriceChecker)
         yield curve_price_checker
     if symbol == "AAVE" or symbol == "BAT":
-        chainlink_price_checker = deployer.deploy(ChainlinkPriceChecker)
         yield chainlink_price_checker
     if symbol == "WETH" or symbol == "UNI":
-        univ3_price_checker = deployer.deploy(UniV3PriceChecker)
         yield univ3_price_checker
+  
+@pytest.fixture
+def chainlink_expected_out_calculator(ChainlinkExpectedOutCalculator, deployer):
+    yield deployer.deploy(ChainlinkExpectedOutCalculator)
 
+@pytest.fixture
+def curve_expected_out_calculator(CurveExpectedOutCalculator, deployer):
+    yield deployer.deploy(CurveExpectedOutCalculator)
+
+@pytest.fixture
+def sushiswap_expected_out_calculator(UniV2ExpectedOutCalculator, deployer):
+    sushi_router = "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F"
+    yield deployer.deploy(UniV2ExpectedOutCalculator, "SUSHI_EXPECTED_OUT_CALCULATOR", sushi_router)
+
+@pytest.fixture
+def univ3_expected_out_calculator(UniV3ExpectedOutCalculator, deployer):
+    yield deployer.deploy(UniV3ExpectedOutCalculator)
+
+@pytest.fixture
+def chainlink_price_checker(DynamicSlippageChecker, chainlink_expected_out_calculator, deployer):
+    yield deployer.deploy(DynamicSlippageChecker, "CHAINLINK_DYNAMIC_SLIPPAGE_PRICE_CHECKER", chainlink_expected_out_calculator)
+
+@pytest.fixture
+def curve_price_checker(DynamicSlippageChecker, curve_expected_out_calculator, deployer):
+    yield deployer.deploy(DynamicSlippageChecker, "CURVE_DYNAMIC_SLIPPAGE_PRICE_CHECKER", curve_expected_out_calculator)
+
+@pytest.fixture
+def sushiswap_price_checker(FixedSlippageChecker, sushiswap_expected_out_calculator, deployer):
+    yield deployer.deploy(FixedSlippageChecker, "SUSHISWAP_STATIC_500_BPS_SLIPPAGE_PRICE_CHECKER", 500, sushiswap_expected_out_calculator) # 5% slippage
+
+@pytest.fixture
+def univ3_price_checker(DynamicSlippageChecker, univ3_expected_out_calculator, deployer):
+    yield deployer.deploy(DynamicSlippageChecker, "UNIV3_DYNAMIC_SLIPPAGE_PRICE_CHECKER", univ3_expected_out_calculator)
 
 # which price checker data to use for each swap
 price_checker_datas = {
-    "TOKE": encode_abi(["uint8"], [int(0)]),  # doesn't matter
-    "USDC": encode_abi(["uint8"], [int(0)]),  # default slippage
-    "GUSD": encode_abi(["uint256"], [int(500)]),  # 5% slippage to allow for gas
-    "AAVE": encode_abi(
-        ["uint256", "address[]", "bool[]"],
-        [int(0), ["0x6Df09E975c830ECae5bd4eD9d90f3A95a4f88012"], [False]],
-    ),  # AAVE/ETH feed
-    "BAT": encode_abi(
-        ["uint256", "address[]", "bool[]"],
+    "TOKE": utils.EMPTY_BYTES, 
+    "USDC": utils.dynamic_slippage_data(400, utils.EMPTY_BYTES),
+    "GUSD": utils.dynamic_slippage_data(500, utils.EMPTY_BYTES),
+    "AAVE": utils.dynamic_slippage_data(400, encode_abi(
+        ["address[]", "bool[]"],
+        [["0x6Df09E975c830ECae5bd4eD9d90f3A95a4f88012"], [False]],
+    )),  # AAVE/ETH feed
+    "BAT": utils.dynamic_slippage_data(2000, encode_abi(
+        ["address[]", "bool[]"],
         [
-            int(2000),
             [
                 "0x0d16d4528239e9ee52fa531af613acdb23d88c94",
                 "0x194a9aaf2e0b67c35915cd01101585a33fe25caa",
             ],
             [False, True],
         ],
-    ),  # BAT/ETH & ALCX/ETH feeds, allow 10% slippage since these are relatively illiquid
-    "WETH": encode_abi(
-        ["uint256", "address[]", "uint24[]"],
-        [int(1400), [token_address["WETH"], token_address["WBTC"]], [int(30)]],
-    ),  # 14% slippage for such a large trade
-    "UNI": encode_abi(
-        ["uint256", "address[]", "uint24[]"],
+    )),  # BAT/ETH & ALCX/ETH feeds, allow 10% slippage since these are relatively illiquid
+    "WETH": utils.dynamic_slippage_data(1400, encode_abi(
+        ["address[]", "uint24[]"],
+        [[token_address["WETH"], token_address["WBTC"]], [int(30)]],
+    )),  # 14% slippage for such a large trade
+    "UNI": utils.dynamic_slippage_data(600, encode_abi(
+        ["address[]", "uint24[]"],
         [
-            int(0),
             [
                 token_address["UNI"],
                 token_address["WETH"],
@@ -175,9 +199,8 @@ price_checker_datas = {
             ],
             [int(30), int(30), int(1)],
         ],
-    ),  # default slippage
+    )),  # 6% slippage
 }
-
 
 @pytest.fixture(scope="session", autouse=True)
 def price_checker_data(token_to_sell):
