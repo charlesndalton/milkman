@@ -38,6 +38,7 @@ contract Milkman {
         0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
     /// @dev The settlement contract's EIP-712 domain separator. Milkman uses this to verify that a provided UID matches provided order parameters.
     bytes32 internal constant DOMAIN_SEPARATOR =
+        // 0xfb378b35457022ecc5709ae5dafad9393c1387ae6d8ce24913a0c969074c07fb;
         0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943;
     /// @dev CoW protocol representation of an order being a sell.
     bytes32 internal constant KIND_SELL =

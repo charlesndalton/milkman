@@ -17,7 +17,7 @@ EIP_1271_MAGIC_VALUE = "0x1626ba7e"
 
 def main():
     unscaled_weth_to_sell = 0.01
-    milkman = Contract("0xDB36Bd8D37caFB3DF523a4832707fE86cC855523")
+    milkman = Contract("0xe80a1C615F75AFF7Ed8F08c9F21f9d00982D666c")
     uni = Contract("0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984")
     weth = Contract("0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6")
     hash_helper = Contract("0x429A101f42781C53c088392956c95F0A32437b8C")
@@ -55,57 +55,59 @@ def main():
 
     # PART 2: KEEPER HANDLING
 
-    (fee_amount, buy_amount_after_fee) = get_quote(weth, uni, weth_to_sell)
+    # (fee_amount, buy_amount_after_fee) = get_quote(weth, uni, weth_to_sell)
 
-    buy_amount_after_fee_with_slippage = int(buy_amount_after_fee * 0.995)
+    # buy_amount_after_fee_with_slippage = int(buy_amount_after_fee * 0.995)
 
-    signature = encode_order_for_is_valid_signature(
-        weth,
-        uni,
-        account,
-        weth_to_sell - fee_amount,
-        buy_amount_after_fee_with_slippage,
-        valid_to,
-        fee_amount,
-        price_checker,
-        price_checker_data,
-    )
+    # signature_encoded_order = encode_order_for_is_valid_signature(
+    #     account,
+    #     weth,
+    #     uni,
+    #     account,
+    #     weth_to_sell - fee_amount,
+    #     buy_amount_after_fee_with_slippage,
+    #     valid_to,
+    #     fee_amount,
+    #     price_checker,
+    #     price_checker_data,
+    # )
 
-    print(f"signature: {signature}")
+    # print(f"signature: {signature_encoded_order}")
 
-    submit_offchain_order(order_contract, account, weth, uni, weth_to_sell - fee_amount, fee_amount, buy_amount_after_fee_with_slippage, valid_to, signature)
+    # submit_offchain_order(order_contract, account, weth, uni, weth_to_sell - fee_amount, fee_amount, buy_amount_after_fee_with_slippage, valid_to, signature_encoded_order)
 
-    # PART 3: VERIFICATION 
-    gpv2_order = (
-        weth.address,
-        uni.address,
-        account.address,
-        weth_to_sell - fee_amount,
-        buy_amount_after_fee_with_slippage,
-        valid_to,
-        APP_DATA,
-        fee_amount,
-        KIND_SELL,
-        False,  # fill or kill
-        ERC20_BALANCE,
-        ERC20_BALANCE,
-    )
+    # # PART 3: VERIFICATION 
+    # gpv2_order = (
+    #     weth.address,
+    #     uni.address,
+    #     account.address,
+    #     weth_to_sell - fee_amount,
+    #     buy_amount_after_fee_with_slippage,
+    #     valid_to,
+    #     APP_DATA,
+    #     fee_amount,
+    #     KIND_SELL,
+    #     False,  # fill or kill
+    #     ERC20_BALANCE,
+    #     ERC20_BALANCE,
+    # )
 
-    order_digest = hash_helper.hash(
-        gpv2_order, to_bytes(DOMAIN_SEPARATOR, "bytes32")
-    )
+    # order_digest = hash_helper.hash(
+    #     gpv2_order, to_bytes(DOMAIN_SEPARATOR, "bytes32")
+    # )
 
-    print(f"order digest: {order_digest}")
+    # print(f"order digest: {order_digest}")
 
-    is_valid_sig = Contract(order_contract).isValidSignature(
-        order_digest, signature_encoded_order
-    )
+    # is_valid_sig = Contract(order_contract).isValidSignature(
+    #     order_digest, signature_encoded_order
+    # )
 
-    print(f"magic value?: {is_valid_sig}")
+    # print(f"magic value?: {is_valid_sig}")
 
 
 # encode a market order in the way that Milkman's isValidSignature function accepts it
 def encode_order_for_is_valid_signature(
+    order_creator,
     sell_token,
     buy_token,
     receiver,
@@ -135,6 +137,7 @@ def encode_order_for_is_valid_signature(
             "bytes32",
             "bytes32",
             "address",
+            "address",
             "bytes",
         ],
         [
@@ -150,6 +153,7 @@ def encode_order_for_is_valid_signature(
             partially_fillable,
             to_bytes(sell_token_balance, "bytes32"),
             to_bytes(buy_token_balance, "bytes32"),
+            order_creator.address,
             price_checker,
             price_checker_data,
         ],
