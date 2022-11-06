@@ -8,22 +8,25 @@ import {IPriceChecker} from "../../interfaces/IPriceChecker.sol";
 import {IExpectedOutCalculator} from "./IExpectedOutCalculator.sol";
 
 // Like the `FixedSlippageChecker` except the user can pass in their desired
-// allowed slippage % dynamically in the _data field.
+// allowed slippage % dynamically in the _data field. The rest of the _data
+// is passed to the price checker.
 contract DynamicSlippageChecker is IPriceChecker {
     using SafeMath for uint256;
 
-    string public immutable NAME;
-    address public immutable EXPECTED_OUT_CALCULATOR;
+    string public NAME;
+    IExpectedOutCalculator public immutable EXPECTED_OUT_CALCULATOR;
 
     uint256 internal constant MAX_BPS = 10_000;
 
     constructor(
-        string _name,
+        string memory _name,
         uint256 _allowedSlippageInBps,
         address _expectedOutCalculator
     ) {
         NAME = _name;
-        EXPECTED_OUT_CALCULATOR = _expectedOutCalculator;
+        EXPECTED_OUT_CALCULATOR = IExpectedOutCalculator(
+            _expectedOutCalculator
+        );
     }
 
     function checkPrice(

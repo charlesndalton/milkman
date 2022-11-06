@@ -13,14 +13,14 @@ import {IExpectedOutCalculator} from "./IExpectedOutCalculator.sol";
 contract FixedSlippageChecker is IPriceChecker {
     using SafeMath for uint256;
 
-    string public immutable NAME;
+    string public NAME;
     uint256 public immutable ALLOWED_SLIPPAGE_IN_BPS;
-    address public immutable EXPECTED_OUT_CALCULATOR;
+    IExpectedOutCalculator public immutable EXPECTED_OUT_CALCULATOR;
 
     uint256 internal constant MAX_BPS = 10_000;
 
     constructor(
-        string _name,
+        string memory _name,
         uint256 _allowedSlippageInBps,
         address _expectedOutCalculator
     ) {
@@ -28,7 +28,9 @@ contract FixedSlippageChecker is IPriceChecker {
 
         NAME = _name;
         ALLOWED_SLIPPAGE_IN_BPS = _allowedSlippageInBps;
-        EXPECTED_OUT_CALCULATOR = _expectedOutCalculator;
+        EXPECTED_OUT_CALCULATOR = IExpectedOutCalculator(
+            _expectedOutCalculator
+        );
     }
 
     function checkPrice(

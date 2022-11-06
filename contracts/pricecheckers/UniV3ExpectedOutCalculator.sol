@@ -5,8 +5,7 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "../../interfaces/IPriceChecker.sol";
-import "./PriceCheckerLib.sol";
+import {IExpectedOutCalculator} from "./IExpectedOutCalculator.sol";
 
 interface IUniswapV3StaticQuoter {
     /// @notice Returns the amount out received for a given exact input swap without executing the swap
@@ -19,7 +18,7 @@ interface IUniswapV3StaticQuoter {
         returns (uint256 amountOut);
 }
 
-contract UniV3PriceChecker is IPriceChecker {
+contract UniV3ExpectedOutCalculator is IExpectedOutCalculator {
     using SafeMath for uint256;
 
     IUniswapV3StaticQuoter internal constant QUOTER =
@@ -28,38 +27,25 @@ contract UniV3PriceChecker is IPriceChecker {
     /**
      * @param _data Encoded [maxSlippage, swapPath, poolFees].
      *
-     * maxSlippage (optional<uint>): Number of basis points of acceptable slippage (e.g., 500 for 5% slippage). If 0 is passed in, the default is 300 (3%).
      * swapPath (address[]): List of ERC20s to swap through.
      * poolFees (uint24[]): Pool fee for the pool to swap through, denominated in bips.
      *
      * Some examples:
-     * AAVE -> DAI w/ default slippage: [0, [address(AAVE), address(WETH), address(DAI)], [30, 5]]
-     * USDT -> USDC w/ 0.5% slippage: [50, [address(USDT), address(USDC)]]
+     * AAVE -> DAI: [[address(AAVE), address(WETH), address(DAI)], [30, 5]]
+     * USDT -> USDC: [[address(USDT), address(USDC)], [1]]
      */
-    function checkPrice(
+    function getExpectedOut(
         uint256 _amountIn,
         address _fromToken,
         address _toToken,
-        uint256,
-        uint256 _minOut,
         bytes calldata _data
-    ) external view override returns (bool) {
-        (
-            uint256 _maxSlippage,
-            address[] memory _swapPath,
-            uint24[] memory _poolFees
-        ) = abi.decode(_data, (uint256, address[], uint24[]));
+    ) external view override returns (uint256) {
+        (address[] memory _swapPath, uint24[] memory _poolFees) = abi.decode(
+            _data,
+            (address[], uint24[])
+        );
 
-        _maxSlippage = PriceCheckerLib.getMaxSlippage(_maxSlippage, 300);
-
-        uint256 _expectedOut = _getExpectedOut(_amountIn, _swapPath, _poolFees);
-
-        return
-            PriceCheckerLib.isMinOutAcceptable(
-                _minOut,
-                _expectedOut,
-                _maxSlippage
-            );
+        return _getExpectedOut(_amountIn, _swapPath, _poolFees);
     }
 
     function _getExpectedOut(

@@ -5,8 +5,7 @@ pragma abicoder v2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "../../interfaces/IPriceChecker.sol";
-import "./PriceCheckerLib.sol";
+import {IExpectedOutCalculator} from "./IExpectedOutCalculator.sol";
 
 interface IAddressProvider {
     function get_registry() external view returns (address);
@@ -32,7 +31,7 @@ interface ICurvePool {
     ) external view returns (uint256);
 }
 
-contract CurvePriceChecker is IPriceChecker {
+contract CurveExpectedOutCalculator is IExpectedOutCalculator {
     using SafeMath for uint256;
 
     IAddressProvider internal constant ADDRESS_PROVIDER =
@@ -51,50 +50,24 @@ contract CurvePriceChecker is IPriceChecker {
     }
 
     /**
-     * @dev This price checker can only be used for Curve pools that use `int128`
+     * @dev This expected out calculator can only be used for Curve pools that use `int128`
      *      for `i` and `j`, which contains most but not all pools.
      *
-     *      A separate price checker can be deployed for the pools that use `uint256`.
-     * @param _data [maxSlippage], where maxSlippage is a uint256 in BIPS. If nothing
-     *              is passed in or maxSlippage is 0, we use 1% by default.
+     *      A separate calculator can be deployed for the pools that use `uint256`.
      */
-    function checkPrice(
+    function getExpectedOut(
         uint256 _amountIn,
         address _fromToken,
         address _toToken,
-        uint256,
-        uint256 _minOut,
         bytes calldata _data
-    ) external view override returns (bool) {
+    ) external view override returns (uint256) {
         address _pool = registry.find_pool_for_coins(_fromToken, _toToken);
         require(_pool != address(0)); // dev: no Curve pool for this swap
 
-        uint256 _maxSlippage = getMaxSlippage(_data);
-        uint256 _expectedOut = getExpectedOut(
-            _pool,
-            _fromToken,
-            _toToken,
-            _amountIn
-        );
-
-        return
-            PriceCheckerLib.isMinOutAcceptable(
-                _minOut,
-                _expectedOut,
-                _maxSlippage
-            );
+        return _getExpectedOut(_pool, _fromToken, _toToken, _amountIn);
     }
 
-    function getMaxSlippage(bytes calldata _data)
-        internal
-        pure
-        returns (uint256 _maxSlippage)
-    {
-        _maxSlippage = abi.decode(_data, (uint256));
-        _maxSlippage = PriceCheckerLib.getMaxSlippage(_maxSlippage, 100); // 1% default
-    }
-
-    function getExpectedOut(
+    function _getExpectedOut(
         address _pool,
         address _fromToken,
         address _toToken,
