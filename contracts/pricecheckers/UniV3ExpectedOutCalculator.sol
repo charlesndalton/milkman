@@ -25,7 +25,7 @@ contract UniV3ExpectedOutCalculator is IExpectedOutCalculator {
         IUniswapV3StaticQuoter(0x7637Aaeb5BD58269B782726680d83f72C651aE74);
 
     /**
-     * @param _data Encoded [maxSlippage, swapPath, poolFees].
+     * @param _data Encoded [swapPath, poolFees].
      *
      * swapPath (address[]): List of ERC20s to swap through.
      * poolFees (uint24[]): Pool fee for the pool to swap through, denominated in bips.

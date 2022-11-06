@@ -19,7 +19,7 @@ def main():
     # if you want to run this on your own, you need to have a brownie account with the same name
     account = accounts.load("goerli-tester")
     network.disconnect()
-    network.connect('goerli')
+    network.connect("goerli")
 
     milkman = Milkman.deploy({"from": account}, publish_source=True)
 

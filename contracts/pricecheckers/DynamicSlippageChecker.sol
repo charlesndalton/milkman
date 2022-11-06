@@ -18,10 +18,7 @@ contract DynamicSlippageChecker is IPriceChecker {
 
     uint256 internal constant MAX_BPS = 10_000;
 
-    constructor(
-        string memory _name,
-        address _expectedOutCalculator
-    ) {
+    constructor(string memory _name, address _expectedOutCalculator) {
         NAME = _name;
         EXPECTED_OUT_CALCULATOR = IExpectedOutCalculator(
             _expectedOutCalculator
@@ -36,7 +33,10 @@ contract DynamicSlippageChecker is IPriceChecker {
         uint256 _minOut,
         bytes calldata _data
     ) external view override returns (bool) {
-        (uint256 _allowedSlippageInBps, bytes memory _data) = abi.decode(_data, (uint256, bytes));
+        (uint256 _allowedSlippageInBps, bytes memory _data) = abi.decode(
+            _data,
+            (uint256, bytes)
+        );
 
         uint256 _expectedOut = EXPECTED_OUT_CALCULATOR.getExpectedOut(
             _amountIn,

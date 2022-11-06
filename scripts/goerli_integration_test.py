@@ -76,7 +76,7 @@ def main():
 
     # submit_offchain_order(order_contract, account, weth, uni, weth_to_sell - fee_amount, fee_amount, buy_amount_after_fee_with_slippage, valid_to, signature_encoded_order)
 
-    # # PART 3: VERIFICATION 
+    # # PART 3: VERIFICATION
     # gpv2_order = (
     #     weth.address,
     #     uni.address,
@@ -183,16 +183,14 @@ def submit_offchain_order(
         "sellAmount": str(
             sell_amount
         ),  # amount that we have minus the fee we have to pay
-        "buyAmount": str(
-            buy_amount
-        ),  # buy amount fetched from the previous call
+        "buyAmount": str(buy_amount),  # buy amount fetched from the previous call
         "validTo": valid_to,
         "appData": APP_DATA,
         "feeAmount": str(fee_amount),
         "kind": "sell",
         "partiallyFillable": False,
         "receiver": receiver.address,
-        "signature": '0x' + signature.hex(),
+        "signature": "0x" + signature.hex(),
         "from": order_contract,
         "sellTokenBalance": "erc20",
         "buyTokenBalance": "erc20",

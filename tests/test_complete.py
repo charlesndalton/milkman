@@ -17,6 +17,8 @@ def test_complete_swap(
     price_checker_data,
     chain,
     hash_helper,
+    chainlink_price_checker,
+    sushiswap_price_checker,
 ):
     token_to_sell.approve(milkman, amount, {"from": user})
 
