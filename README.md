@@ -3,7 +3,11 @@
 [![Tests](https://github.com/charlesndalton/milkman/actions/workflows/test.yml/badge.svg)](https://github.com/charlesndalton/milkman/actions/workflows/test.yml/badge.svg)
 [![License: LGPL-3.0](https://img.shields.io/github/license/charlesndalton/milkman)](https://img.shields.io/github/license/charlesndalton/milkman)
 
-Enables smart contracts to sell tokens to CoW protocol. 
+Fulfills all of your smart contract's CoW needs. 🐮
+
+A simple way for smart contracts to sell their tokens via the CoW Protocol, reaping
+the benefits of MEV protection even when tx.origin is malicious (e.g., a liquidator
+bot in a borrow/lend protocol).
 
 ## How to use
 
@@ -22,7 +26,7 @@ See [docs/EXAMPLES](./docs/EXAMPLES.md) for examples.
 
 ### Price checkers
 
-After have been sent to Milkman, it functions like a 'conditional signer', only
+After token have been sent to Milkman, it functions like a 'conditional signer', only
 releasing those tokens to CoW protocol under certain conditions. Anyone can generate
 an off-chain order for an on-chain swap request, but Milkman will only sign off
 on orders that pass its checks.
@@ -54,4 +58,4 @@ function checkPrice(
     ) external view returns (bool);
 ```
 
-The process of building one is straightforward, and can be abbreviated by using the [Price Checker Library](./contracts/pricecheckers/PriceCheckerLib.sol). Examples can be found in the [pricecheckers](./contracts/pricecheckers) folder.
+The process of building one is straightforward. Examples can be found in the [pricecheckers](./contracts/pricecheckers) folder.
