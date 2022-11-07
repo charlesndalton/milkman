@@ -59,7 +59,7 @@ contract CurveExpectedOutCalculator is IExpectedOutCalculator {
         uint256 _amountIn,
         address _fromToken,
         address _toToken,
-        bytes calldata _data
+        bytes calldata
     ) external view override returns (uint256) {
         address _pool = registry.find_pool_for_coins(_fromToken, _toToken);
         require(_pool != address(0)); // dev: no Curve pool for this swap

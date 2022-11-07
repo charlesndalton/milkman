@@ -277,7 +277,9 @@ price_checker_datas = {
 
 
 @pytest.fixture
-def price_checker_data(token_to_sell, chainlink_expected_out_calculator, sushiswap_expected_out_calculator):
+def price_checker_data(
+    token_to_sell, chainlink_expected_out_calculator, sushiswap_expected_out_calculator
+):
     if token_to_sell.symbol() == "ALCX":
         yield utils.dynamic_slippage_data(
             1000,
@@ -296,7 +298,10 @@ def price_checker_data(token_to_sell, chainlink_expected_out_calculator, sushisw
                     [
                         encode_abi(
                             ["address[]", "bool[]"],
-                            [["0x194a9aaf2e0b67c35915cd01101585a33fe25caa"], [False]], # if you're reading this, forgive me pls
+                            [
+                                ["0x194a9aaf2e0b67c35915cd01101585a33fe25caa"],
+                                [False],
+                            ],  # forgive me father for this much nesting 
                         ),
                         utils.EMPTY_BYTES,
                     ],

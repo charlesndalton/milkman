@@ -1,17 +1,14 @@
 # Milkman
 
-<img src="https://i.imgur.com/SOwYtIJ.jpg" width=150>
-
-
 [![Tests](https://github.com/charlesndalton/milkman/actions/workflows/test.yml/badge.svg)](https://github.com/charlesndalton/milkman/actions/workflows/test.yml/badge.svg)
 [![License: LGPL-3.0](https://img.shields.io/github/license/charlesndalton/milkman)](https://img.shields.io/github/license/charlesndalton/milkman)
 
-
-Allows smart contracts to use the CoW Protocol.
+Enables smart contracts to sell tokens to CoW protocol. 
 
 ## How to use
 
-Call `milkman.requestSwapExactTokensForTokens`, passing in the following parameters:
+To swap via Milkman, call `milkman.requestSwapExactTokensForTokens`, passing in 
+the following parameters:
 - `amountIn`: an amount of tokens to sell
 - `fromToken`: ERC20 you're swapping out of
 - `toToken`: ERC20 you're swapping into
@@ -19,17 +16,29 @@ Call `milkman.requestSwapExactTokensForTokens`, passing in the following paramet
 - `priceChecker`: the address of a price checker, or `address(0)` for none; explained below
 - `priceCheckerData`: encoded data to pass to the price checker; explained below
 
-After you submit a swap request, it should be picked up and completed within 1-2 minutes.
+After you submit a swap request, it should be picked up and executed within 1-2 minutes.
+
+See [docs/EXAMPLES](./docs/EXAMPLES.md) for examples.
 
 ### Price checkers
 
-Bots generate off-chain CoW orders for each swap request. Milkman needs to validate these off-chain orders before it signs them. To do so, it calls a price checker. 
+After have been sent to Milkman, it functions like a 'conditional signer', only
+releasing those tokens to CoW protocol under certain conditions. Anyone can generate
+an off-chain order for an on-chain swap request, but Milkman will only sign off
+on orders that pass its checks.
 
-Price checkers validate that the bot-supplied `minOut` approximates the true value of the tokens that a user is swapping. To do so, they can use a variety of sources, such as AMMs and oracles. 
+Many of these checks are baked into Milkman itself, such as ensuring that the
+off-chain order is a sell order (not a buy order). However, an important one is
+not: validating that the bot-supplied `minOut` approximates the true value of
+the tokens that a user is swapping. Users who don't want to trust the CoW
+off-chain system can use `price checkers`. Price checkers verify that a `minOut`
+is in-line with some on-chain price feed. For example, one price checker could
+verify that `minOut` is at least 90% of what they could get from selling the tokens
+via SushiSwap.
 
-For example, if Alice wanted to swap YFI -> DAI, she could pass in the Chainlink price checker. When a bot generates a CoW order and tries to get Milkman to sign it, it asks the price checker whether the bot-configured `minOut` is in line with the current value of YFI. In turn, this price checker would check the YFI/USD price feed, and calculate how much USD `amountIn` of YFI is worth. If this amount is close enough to `minOut`, it will declare the order valid and Milkman will sign it.
-
-Many price checkers can exist, and new price checkers don't need to be whitelisted. The user simply passes a `IPriceChecker`-compatible contract into the `priceChecker` argument. Some price checkers may need extra data from the user (e.g., the Chainlink one needs the price feed(s) to use). This can be passed in `priceCheckerData` in a byte-encoded form.
+The only requirement for a price checker is that it needs to be compatible with 
+the `IPriceChecker` interface. Anyone can create a new one, and new ones don't 
+need to be whitelisted. 
 
 ## Developing new price checkers
 

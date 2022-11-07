@@ -7,6 +7,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IExpectedOutCalculator} from "./IExpectedOutCalculator.sol";
 
+/**
+ * @notice Uses multiple other expected out calculators to generate an expected out.
+ */
 contract MetaExpectedOutCalculator is IExpectedOutCalculator {
     using SafeMath for uint256;
 
