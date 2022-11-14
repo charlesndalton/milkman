@@ -33,19 +33,10 @@ contract Milkman {
     /// @dev The contract Milkman needs to give allowance.
     address internal constant VAULT_RELAYER =
         0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
-    /// @dev The CoW protocol settlement contract. Only this contract can call `isValidSignature`.
-    address internal constant SETTLEMENT =
-        0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
     /// @dev The settlement contract's EIP-712 domain separator. Milkman uses this to verify that a provided UID matches provided order parameters.
     bytes32 internal constant DOMAIN_SEPARATOR =
         // 0xfb378b35457022ecc5709ae5dafad9393c1387ae6d8ce24913a0c969074c07fb;
         0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943;
-    /// @dev CoW protocol representation of an order being a sell.
-    bytes32 internal constant KIND_SELL =
-        hex"f3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775";
-    /// @dev CoW protocol representation of an order being fulfilled with the ERC20 balance of the sender, instead of some alternate means (e.g., balance in the Balancer Vault).
-    bytes32 internal constant BALANCE_ERC20 =
-        hex"5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9";
     bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
     bytes4 internal constant NON_MAGIC_VALUE = 0xffffffff;
 
@@ -151,7 +142,7 @@ contract Milkman {
 
         require(_order.hash(DOMAIN_SEPARATOR) == orderDigest, "!match");
 
-        require(_order.kind == KIND_SELL, "!kind_sell");
+        require(_order.kind == GPv2Order.KIND_SELL, "!kind_sell");
 
         require(
             _order.validTo >= block.timestamp + 5 minutes,
@@ -160,9 +151,15 @@ contract Milkman {
 
         require(!_order.partiallyFillable, "!fill_or_kill");
 
-        require(_order.sellTokenBalance == BALANCE_ERC20, "!sell_erc20");
+        require(
+            _order.sellTokenBalance == GPv2Order.BALANCE_ERC20,
+            "!sell_erc20"
+        );
 
-        require(_order.buyTokenBalance == BALANCE_ERC20, "!buy_erc20");
+        require(
+            _order.buyTokenBalance == GPv2Order.BALANCE_ERC20,
+            "!buy_erc20"
+        );
 
         if (_priceChecker != address(0)) {
             require(
