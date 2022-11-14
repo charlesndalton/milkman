@@ -33,26 +33,22 @@ contract Milkman {
     /// @dev The contract Milkman needs to give allowance.
     address internal constant VAULT_RELAYER =
         0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
-    /// @dev The CoW protocol settlement contract. Only this contract can call `isValidSignature`.
-    address internal constant SETTLEMENT =
-        0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
     /// @dev The settlement contract's EIP-712 domain separator. Milkman uses this to verify that a provided UID matches provided order parameters.
     bytes32 internal constant DOMAIN_SEPARATOR =
         // 0xfb378b35457022ecc5709ae5dafad9393c1387ae6d8ce24913a0c969074c07fb;
         0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943;
-    /// @dev CoW protocol representation of an order being a sell.
-    bytes32 internal constant KIND_SELL =
-        hex"f3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775";
-    /// @dev CoW protocol representation of an order being fulfilled with the ERC20 balance of the sender, instead of some alternate means (e.g., balance in the Balancer Vault).
-    bytes32 internal constant BALANCE_ERC20 =
-        hex"5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9";
     bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
     bytes4 internal constant NON_MAGIC_VALUE = 0xffffffff;
 
+    /// @dev the Milkman deployed by an EOA, in contrast to Milkman 'order contracts' deployed in requestSwapExactTokensForTokens
+    address internal immutable ROOT_MILKMAN;
+
     /// @dev Hash of the swap data. Only set for non-clones.
     bytes32 public swapHash;
-    /// @dev Set to true once a clone has been initialized. Prevents malicious actors from tampering with swap hashes.
-    bool internal isInitialized;
+
+    constructor() {
+        ROOT_MILKMAN = address(this);
+    }
 
     /// @notice Swap an exact amount of tokenIn for a market-determined amount of tokenOut.
     /// @param amountIn The number of tokens to sell.
@@ -69,6 +65,8 @@ contract Milkman {
         address priceChecker,
         bytes calldata priceCheckerData
     ) external {
+        require(address(this) == ROOT_MILKMAN); // dev: can't call `requestSwapExactTokensForTokens` from order contracts
+
         address orderContract = createOrderContract();
 
         fromToken.safeTransferFrom(msg.sender, orderContract, amountIn);
@@ -100,12 +98,10 @@ contract Milkman {
     }
 
     function initialize(IERC20 fromToken, bytes32 _swapHash) external {
-        require(!isInitialized); // dev: cannot re-initialize an order contract
-        isInitialized = true; // doubles as re-entrancy prevention
+        require(swapHash == bytes32(0) && _swapHash != bytes32(0)); // dev: cannot re-initialize an order contract
+        swapHash = _swapHash;
 
         fromToken.approve(VAULT_RELAYER, type(uint256).max);
-
-        swapHash = _swapHash;
     }
 
     /// @notice Cancel a requested swap. May be useful if you try to swap a token that CoW doesn't support, for example.
@@ -151,7 +147,7 @@ contract Milkman {
 
         require(_order.hash(DOMAIN_SEPARATOR) == orderDigest, "!match");
 
-        require(_order.kind == KIND_SELL, "!kind_sell");
+        require(_order.kind == GPv2Order.KIND_SELL, "!kind_sell");
 
         require(
             _order.validTo >= block.timestamp + 5 minutes,
@@ -160,9 +156,15 @@ contract Milkman {
 
         require(!_order.partiallyFillable, "!fill_or_kill");
 
-        require(_order.sellTokenBalance == BALANCE_ERC20, "!sell_erc20");
+        require(
+            _order.sellTokenBalance == GPv2Order.BALANCE_ERC20,
+            "!sell_erc20"
+        );
 
-        require(_order.buyTokenBalance == BALANCE_ERC20, "!buy_erc20");
+        require(
+            _order.buyTokenBalance == GPv2Order.BALANCE_ERC20,
+            "!buy_erc20"
+        );
 
         if (_priceChecker != address(0)) {
             require(
