@@ -40,10 +40,15 @@ contract Milkman {
     bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
     bytes4 internal constant NON_MAGIC_VALUE = 0xffffffff;
 
+    /// @dev the Milkman deployed by an EOA, in contrast to Milkman 'order contracts' deployed in requestSwapExactTokensForTokens
+    address internal immutable ROOT_MILKMAN;
+
     /// @dev Hash of the swap data. Only set for non-clones.
     bytes32 public swapHash;
-    /// @dev Set to true once a clone has been initialized. Prevents malicious actors from tampering with swap hashes.
-    bool internal isInitialized;
+
+    constructor() {
+        ROOT_MILKMAN = address(this);
+    }
 
     /// @notice Swap an exact amount of tokenIn for a market-determined amount of tokenOut.
     /// @param amountIn The number of tokens to sell.
@@ -60,6 +65,8 @@ contract Milkman {
         address priceChecker,
         bytes calldata priceCheckerData
     ) external {
+        require(address(this) == ROOT_MILKMAN); // dev: can't call `requestSwapExactTokensForTokens` from order contracts
+
         address orderContract = createOrderContract();
 
         fromToken.safeTransferFrom(msg.sender, orderContract, amountIn);
@@ -91,12 +98,10 @@ contract Milkman {
     }
 
     function initialize(IERC20 fromToken, bytes32 _swapHash) external {
-        require(!isInitialized); // dev: cannot re-initialize an order contract
-        isInitialized = true; // doubles as re-entrancy prevention
+        require(swapHash == bytes32(0) && _swapHash != bytes32(0)); // dev: cannot re-initialize an order contract
+        swapHash = _swapHash;
 
         fromToken.approve(VAULT_RELAYER, type(uint256).max);
-
-        swapHash = _swapHash;
     }
 
     /// @notice Cancel a requested swap. May be useful if you try to swap a token that CoW doesn't support, for example.
