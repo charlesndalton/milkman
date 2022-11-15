@@ -67,7 +67,8 @@ contract Milkman {
         address priceChecker,
         bytes calldata priceCheckerData
     ) external {
-        require(address(this) == ROOT_MILKMAN); // dev: can't call `requestSwapExactTokensForTokens` from order contracts
+        require(address(this) == ROOT_MILKMAN, "!root_milkman"); // dev: can't call `requestSwapExactTokensForTokens` from order contracts
+        require(priceChecker != address(0), "!price_checker_set"); // dev: need to supply a valid price checker
 
         address orderContract = createOrderContract();
 
@@ -143,7 +144,7 @@ contract Milkman {
         view
         returns (bytes4)
     {
-        require(swapHash != ROOT_MILKMAN_SWAP_HASH, "!check_from_root");
+        require(swapHash != ROOT_MILKMAN_SWAP_HASH, "!is_valid_sig_from_root");
 
         (
             GPv2Order.Data memory _order,
@@ -173,19 +174,17 @@ contract Milkman {
             "!buy_erc20"
         );
 
-        if (_priceChecker != address(0)) {
-            require(
-                IPriceChecker(_priceChecker).checkPrice(
-                    _order.sellAmount.add(_order.feeAmount),
-                    address(_order.sellToken),
-                    address(_order.buyToken),
-                    _order.feeAmount,
-                    _order.buyAmount,
-                    _priceCheckerData
-                ),
-                "invalid_min_out"
-            );
-        }
+        require(
+            IPriceChecker(_priceChecker).checkPrice(
+                _order.sellAmount.add(_order.feeAmount),
+                address(_order.sellToken),
+                address(_order.buyToken),
+                _order.feeAmount,
+                _order.buyAmount,
+                _priceCheckerData
+            ),
+            "invalid_min_out"
+        );
 
         bytes32 _swapHash = keccak256(
             abi.encode(
