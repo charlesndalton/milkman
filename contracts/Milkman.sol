@@ -39,12 +39,14 @@ contract Milkman {
         0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943;
     bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
     bytes4 internal constant NON_MAGIC_VALUE = 0xffffffff;
+    bytes32 internal constant ROOT_MILKMAN_SWAP_HASH =
+        0xca11ab1efacade657e10051025462110a087ed60be637f73a5b2eff3df7fca1f;
 
     /// @dev the Milkman deployed by an EOA, in contrast to Milkman 'order contracts' deployed in requestSwapExactTokensForTokens
     address internal immutable ROOT_MILKMAN;
 
-    /// @dev Hash of the swap data. Only set for non-clones.
-    bytes32 public swapHash;
+    /// @dev Hash of the swap data. Equal to `ROOT_MILKMAN_SWAP_HASH` on the root contract and set to the real swap hash on order contracts.
+    bytes32 public swapHash = ROOT_MILKMAN_SWAP_HASH;
 
     constructor() {
         ROOT_MILKMAN = address(this);
@@ -98,6 +100,7 @@ contract Milkman {
     }
 
     function initialize(IERC20 fromToken, bytes32 _swapHash) external {
+        // below check also prevents root contract from being initialized
         require(swapHash == bytes32(0) && _swapHash != bytes32(0)); // dev: cannot re-initialize an order contract
         swapHash = _swapHash;
 
@@ -114,6 +117,8 @@ contract Milkman {
         address priceChecker,
         bytes calldata priceCheckerData
     ) external {
+        require(swapHash != ROOT_MILKMAN_SWAP_HASH, "!cancel_from_root");
+
         bytes32 _swapHash = keccak256(
             abi.encode(
                 msg.sender,
@@ -138,6 +143,8 @@ contract Milkman {
         view
         returns (bytes4)
     {
+        require(swapHash != ROOT_MILKMAN_SWAP_HASH, "!check_from_root");
+
         (
             GPv2Order.Data memory _order,
             address _orderCreator,
