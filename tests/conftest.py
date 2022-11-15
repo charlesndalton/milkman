@@ -301,7 +301,7 @@ def price_checker_data(
                             [
                                 ["0x194a9aaf2e0b67c35915cd01101585a33fe25caa"],
                                 [False],
-                            ],  # forgive me father for this much nesting 
+                            ],  # forgive me father for this much nesting
                         ),
                         utils.EMPTY_BYTES,
                     ],
