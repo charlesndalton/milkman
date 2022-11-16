@@ -118,9 +118,11 @@ contract Milkman {
         address priceChecker,
         bytes calldata priceCheckerData
     ) external {
-        require(swapHash != ROOT_MILKMAN_SWAP_HASH, "!cancel_from_root");
+        bytes32 _storedSwapHash = swapHash;
 
-        bytes32 _swapHash = keccak256(
+        require(_storedSwapHash != ROOT_MILKMAN_SWAP_HASH, "!cancel_from_root");
+
+        bytes32 _calculatedSwapHash = keccak256(
             abi.encode(
                 msg.sender,
                 to,
@@ -132,7 +134,7 @@ contract Milkman {
             )
         );
 
-        require(_swapHash == swapHash, "!orderCreator");
+        require(_storedSwapHash == _calculatedSwapHash, "!orderCreator");
 
         fromToken.safeTransfer(msg.sender, amountIn);
     }
@@ -144,7 +146,12 @@ contract Milkman {
         view
         returns (bytes4)
     {
-        require(swapHash != ROOT_MILKMAN_SWAP_HASH, "!is_valid_sig_from_root");
+        bytes32 _storedSwapHash = swapHash;
+
+        require(
+            _storedSwapHash != ROOT_MILKMAN_SWAP_HASH,
+            "!is_valid_sig_from_root"
+        );
 
         (
             GPv2Order.Data memory _order,
@@ -186,7 +193,7 @@ contract Milkman {
             "invalid_min_out"
         );
 
-        bytes32 _swapHash = keccak256(
+        bytes32 _calculatedSwapHash = keccak256(
             abi.encode(
                 _orderCreator,
                 _order.receiver,
@@ -198,7 +205,7 @@ contract Milkman {
             )
         );
 
-        if (_swapHash == swapHash) {
+        if (_calculatedSwapHash == _storedSwapHash) {
             // should be true as long as the keeper isn't submitting bad orders
             return MAGIC_VALUE;
         } else {
