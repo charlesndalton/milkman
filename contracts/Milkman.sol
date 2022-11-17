@@ -40,7 +40,7 @@ contract Milkman {
     bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
     bytes4 internal constant NON_MAGIC_VALUE = 0xffffffff;
     bytes32 internal constant ROOT_MILKMAN_SWAP_HASH =
-        0xca11ab1efacade657e10051025462110a087ed60be637f73a5b2eff3df7fca1f;
+        0xca11ab1efacade00000000000000000000000000000000000000000000000000;
 
     /// @dev the Milkman deployed by an EOA, in contrast to Milkman 'order contracts' deployed in requestSwapExactTokensForTokens
     address internal immutable ROOT_MILKMAN;
