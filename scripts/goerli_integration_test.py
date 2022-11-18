@@ -4,6 +4,7 @@ from brownie import accounts, Contract, ZERO_ADDRESS
 from brownie.network.state import Chain
 from eth_abi import encode_abi
 from brownie.convert import to_bytes
+import time
 
 # to run this test:
 # $ brownie run --network goerli goerli_integration_test.py
@@ -11,7 +12,7 @@ from brownie.convert import to_bytes
 APP_DATA = "0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24"  # maps to https://bafybeiblq2ko2maieeuvtbzaqyhi5fzpa6vbbwnydsxbnsqoft5si5b6eq.ipfs.dweb.link
 KIND_SELL = "0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775"
 ERC20_BALANCE = "0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9"
-DOMAIN_SEPARATOR = "0xfb378b35457022ecc5709ae5dafad9393c1387ae6d8ce24913a0c969074c07fb"
+DOMAIN_SEPARATOR = "0xfb378b35457022ecc5709ae5dafad9393c1387ae6d8ce24913a0c969074c07fb" # goerli domain separator
 EIP_1271_MAGIC_VALUE = "0x1626ba7e"
 
 
@@ -26,7 +27,7 @@ def main():
 
     print(weth_to_sell)
 
-    # PART 1: USER TRANSACTION
+    # PART 1: USER CALLS `requestSwapExactTokensForTokens`
 
     # if you want to run this on your own, you need to have a brownie account with the same name
     account = accounts.load("goerli-tester")
@@ -53,56 +54,81 @@ def main():
     order_contract = tx.events["SwapRequested"]["orderContract"]
     print(f"order contract address: {order_contract}")
 
-    # PART 2: KEEPER HANDLING
+    # PART 2: GET QUOTE
 
-    # (fee_amount, buy_amount_after_fee) = get_quote(weth, uni, weth_to_sell)
+    (fee_amount, buy_amount_after_fee) = get_quote(
+        order_contract, account, weth, uni, weth_to_sell 
+    )
 
-    # buy_amount_after_fee_with_slippage = int(buy_amount_after_fee * 0.995)
+    fee_amount = 0 # limit order
 
-    # signature_encoded_order = encode_order_for_is_valid_signature(
-    #     account,
-    #     weth,
-    #     uni,
-    #     account,
-    #     weth_to_sell - fee_amount,
-    #     buy_amount_after_fee_with_slippage,
-    #     valid_to,
-    #     fee_amount,
-    #     price_checker,
-    #     price_checker_data,
-    # )
+    # PART 3: VERIFY THAT AN ORDER COULD BE FULFILLED BEFORE SUBMITTING IT
 
-    # print(f"signature: {signature_encoded_order}")
+    buy_amount_after_fee_with_slippage = int(buy_amount_after_fee * 0.8)
 
-    # submit_offchain_order(order_contract, account, weth, uni, weth_to_sell - fee_amount, fee_amount, buy_amount_after_fee_with_slippage, valid_to, signature_encoded_order)
+    signature_encoded_order = encode_order_for_is_valid_signature(
+        order_creator=account,
+        sell_token=weth,
+        buy_token=uni,
+        receiver=account,
+        sell_amount=weth_to_sell,
+        buy_amount=buy_amount_after_fee_with_slippage,
+        valid_to=valid_to,
+        fee_amount=0,
+        price_checker=price_checker,
+        price_checker_data=price_checker_data,
+    )
 
-    # # PART 3: VERIFICATION
-    # gpv2_order = (
-    #     weth.address,
-    #     uni.address,
-    #     account.address,
-    #     weth_to_sell - fee_amount,
-    #     buy_amount_after_fee_with_slippage,
-    #     valid_to,
-    #     APP_DATA,
-    #     fee_amount,
-    #     KIND_SELL,
-    #     False,  # fill or kill
-    #     ERC20_BALANCE,
-    #     ERC20_BALANCE,
-    # )
+    print(f"signature: {signature_encoded_order}")
 
-    # order_digest = hash_helper.hash(
-    #     gpv2_order, to_bytes(DOMAIN_SEPARATOR, "bytes32")
-    # )
+    gpv2_order = (
+        weth.address,
+        uni.address,
+        account.address,
+        weth_to_sell - fee_amount,
+        buy_amount_after_fee_with_slippage,
+        valid_to,
+        APP_DATA,
+        fee_amount,
+        KIND_SELL,
+        False,  # fill or kill
+        ERC20_BALANCE,
+        ERC20_BALANCE,
+    )
 
-    # print(f"order digest: {order_digest}")
+    order_digest = hash_helper.hash(
+        gpv2_order, to_bytes(DOMAIN_SEPARATOR, "bytes32")
+    )
 
-    # is_valid_sig = Contract(order_contract).isValidSignature(
-    #     order_digest, signature_encoded_order
-    # )
+    print(f"order digest: {order_digest}")
 
-    # print(f"magic value?: {is_valid_sig}")
+    is_valid_sig = Contract(order_contract).isValidSignature(
+        order_digest, signature_encoded_order
+    )
+
+    print(f"magic value?: {is_valid_sig}")
+
+    assert is_valid_sig == EIP_1271_MAGIC_VALUE
+
+    # PART 4: SUBMIT OFF-CHAIN ORDER
+
+    submit_offchain_order(order_contract, account, weth, uni, weth_to_sell - fee_amount, fee_amount, buy_amount_after_fee_with_slippage, valid_to, signature_encoded_order)
+
+    # PART 5: WAIT, AND CHECK THAT ALL TOKENS HAVE BEEN SOLD
+
+    num_checks = 0
+    while(True):
+        time.sleep(5)
+        num_checks += 1
+
+        if num_checks > 200:
+            print("After 200 checks, tokens are still in order contract. Exiting...")
+            break
+
+        if weth.balanceOf(order_contract) == 0:
+            break
+
+    # TODO
 
 
 # encode a market order in the way that Milkman's isValidSignature function accepts it
@@ -173,7 +199,7 @@ def submit_offchain_order(
     signature,
 ):
 
-    assert fee_amount > 0
+    # assert fee_amount > 0
     assert buy_amount > 0
 
     # Submit order
@@ -186,7 +212,7 @@ def submit_offchain_order(
         "buyAmount": str(buy_amount),  # buy amount fetched from the previous call
         "validTo": valid_to,
         "appData": APP_DATA,
-        "feeAmount": str(fee_amount),
+        "feeAmount": str(fee_amount), # limit order
         "kind": "sell",
         "partiallyFillable": False,
         "receiver": receiver.address,
@@ -215,30 +241,39 @@ def submit_offchain_order(
     return (order_uid, order_payload)
 
 
-def get_quote(sell_token, buy_token, sell_amount):
+def get_quote(
+    order_contract,
+    receiver,
+    sell_token,
+    buy_token,
+    sell_amount,
+):
     # get the fee + the buy amount after fee
-    fee_and_quote = "https://barn.api.cow.fi/goerli/api/v1/feeAndQuote/sell"
-    get_params = {
+    quote_url = "https://barn.api.cow.fi/goerli/api/v1/quote"
+
+    quote_payload = {
         "sellToken": sell_token.address,
         "buyToken": buy_token.address,
-        "sellAmountBeforeFee": int(sell_amount),
+        "receiver": receiver.address,
+        "appData": APP_DATA,
+        "partiallyFillable": False,
+        "sellTokenBalance": "erc20",
+        "buyTokenBalance": "erc20",
+        "from": order_contract,
+        "priceQuality": "fast",
+        "signingScheme": "eip1271",
+        "onchainOrder": True,
+        "kind": "sell",
+        "sellAmountBeforeFee": str(sell_amount),
     }
 
-    r = requests.get(fee_and_quote, params=get_params)
-    times_to_retry = 3
-    while times_to_retry > 0:
-        if r.ok and r.status_code == 200:
-            break
+    r = requests.post(quote_url, json=quote_payload)
 
-        time.sleep(1)
-
-        r = requests.get(fee_and_quote, params=get_params)
-        times_to_retry -= 1
     print(f"Response: {r}")
     assert r.ok and r.status_code == 200
 
     # These two values are needed to create an order
-    fee_amount = int(r.json()["fee"]["amount"])
-    buy_amount_after_fee = int(r.json()["buyAmountAfterFee"])
+    fee_amount = int(r.json()["quote"]["feeAmount"])
+    buy_amount_after_fee = int(r.json()["quote"]["buyAmount"])
 
     return (fee_amount, buy_amount_after_fee)
