@@ -98,8 +98,8 @@ def test_complete_swap(
         token_to_buy,
         fee_amount,
         buy_amount_after_fee,
-        price_checker_data
-    ) 
+        price_checker_data,
+    )
 
     assert to_bytes(is_valid_sig) == to_bytes(utils.EIP_1271_MAGIC_VALUE)
 
