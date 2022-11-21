@@ -34,7 +34,7 @@ contract Milkman {
     address internal constant VAULT_RELAYER =
         0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
     /// @dev The settlement contract's EIP-712 domain separator. Milkman uses this to verify that a provided UID matches provided order parameters.
-    bytes32 internal constant DOMAIN_SEPARATOR =
+    bytes32 public constant DOMAIN_SEPARATOR =
         // 0xfb378b35457022ecc5709ae5dafad9393c1387ae6d8ce24913a0c969074c07fb;
         0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943;
     bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
