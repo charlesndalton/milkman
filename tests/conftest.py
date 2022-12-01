@@ -1,6 +1,15 @@
 from lib2to3.pgen2 import token
 from brownie import Contract
 from eth_abi import encode_abi
+from milkman_py import (
+    univ2_expected_out_data,
+    univ3_expected_out_data,
+    curve_expected_out_data,
+    chainlink_expected_out_data,
+    meta_expected_out_data,
+    fixed_slippage_price_checker_data,
+    dynamic_slippage_price_checker_data,
+)
 import pytest
 import utils
 
@@ -228,49 +237,42 @@ def meta_price_checker(DynamicSlippageChecker, meta_expected_out_calculator, dep
 
 # which price checker data to use for each swap
 price_checker_datas = {
-    "TOKE": utils.EMPTY_BYTES,
-    "USDC": utils.dynamic_slippage_data(400, utils.EMPTY_BYTES),
-    "GUSD": utils.dynamic_slippage_data(500, utils.EMPTY_BYTES),
-    "AAVE": utils.dynamic_slippage_data(
+    "TOKE": fixed_slippage_price_checker_data(univ2_expected_out_data()),
+    "USDC": dynamic_slippage_price_checker_data(400, curve_expected_out_data()),
+    "GUSD": dynamic_slippage_price_checker_data(500, curve_expected_out_data()),
+    "AAVE": dynamic_slippage_price_checker_data(
         400,
-        encode_abi(
-            ["address[]", "bool[]"],
-            [["0x6Df09E975c830ECae5bd4eD9d90f3A95a4f88012"], [False]],
+        chainlink_expected_out_data(
+            ["0x6Df09E975c830ECae5bd4eD9d90f3A95a4f88012"], [False]  # AAVE/ETH feed
         ),
-    ),  # AAVE/ETH feed
-    "BAT": utils.dynamic_slippage_data(
+    ),
+    "BAT": dynamic_slippage_price_checker_data(
         2000,
-        encode_abi(
-            ["address[]", "bool[]"],
+        chainlink_expected_out_data(
             [
-                [
-                    "0x0d16d4528239e9ee52fa531af613acdb23d88c94",
-                    "0x194a9aaf2e0b67c35915cd01101585a33fe25caa",
-                ],
-                [False, True],
+                "0x0d16d4528239e9ee52fa531af613acdb23d88c94",
+                "0x194a9aaf2e0b67c35915cd01101585a33fe25caa",
             ],
+            [False, True],
         ),
-    ),  # BAT/ETH & ALCX/ETH feeds, allow 10% slippage since these are relatively illiquid
-    "WETH": utils.dynamic_slippage_data(
+    ),  # BAT/ETH & ALCX/ETH feeds, allow 20% slippage since these are relatively illiquid
+    "WETH": dynamic_slippage_price_checker_data(
         1400,
-        encode_abi(
-            ["address[]", "uint24[]"],
-            [[token_address["WETH"], token_address["WBTC"]], [int(30)]],
+        univ3_expected_out_data(
+            [token_address["WETH"], token_address["WBTC"]],
+            [int(30)],
         ),
     ),  # 14% slippage for such a large trade
-    "UNI": utils.dynamic_slippage_data(
+    "UNI": dynamic_slippage_price_checker_data(
         600,
-        encode_abi(
-            ["address[]", "uint24[]"],
+        univ3_expected_out_data(
             [
-                [
-                    token_address["UNI"],
-                    token_address["WETH"],
-                    token_address["USDC"],
-                    token_address["USDT"],
-                ],
-                [int(30), int(30), int(1)],
+                token_address["UNI"],
+                token_address["WETH"],
+                token_address["USDC"],
+                token_address["USDT"],
             ],
+            [int(30), int(30), int(1)],
         ),
     ),  # 6% slippage
 }
@@ -281,30 +283,27 @@ def price_checker_data(
     token_to_sell, chainlink_expected_out_calculator, sushiswap_expected_out_calculator
 ):
     if token_to_sell.symbol() == "ALCX":
-        yield utils.dynamic_slippage_data(
+        yield dynamic_slippage_price_checker_data(
             1000,
-            encode_abi(
-                ["address[]", "address[]", "bytes[]"],
+            meta_expected_out_data(
                 [
-                    [
-                        token_address["ALCX"],
-                        token_address["WETH"],
-                        token_address["TOKE"],
-                    ],
-                    [
-                        chainlink_expected_out_calculator.address,
-                        sushiswap_expected_out_calculator.address,
-                    ],
-                    [
-                        encode_abi(
-                            ["address[]", "bool[]"],
-                            [
-                                ["0x194a9aaf2e0b67c35915cd01101585a33fe25caa"],
-                                [False],
-                            ],  # forgive me father for this much nesting
-                        ),
-                        utils.EMPTY_BYTES,
-                    ],
+                    token_address["ALCX"],
+                    token_address["WETH"],
+                    token_address["TOKE"],
+                ],
+                [
+                    chainlink_expected_out_calculator.address,
+                    sushiswap_expected_out_calculator.address,
+                ],
+                [
+                    encode_abi(
+                        ["address[]", "bool[]"],
+                        [
+                            ["0x194a9aaf2e0b67c35915cd01101585a33fe25caa"],
+                            [False],
+                        ],  # forgive me father for this much nesting
+                    ),
+                    utils.EMPTY_BYTES,
                 ],
             ),
         )
