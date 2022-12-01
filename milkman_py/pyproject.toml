@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "milkman-py"
+version = "0.0.6"
+description = ""
+authors = ["charlesndalton <charles.n.dalton@gmail.com>"]
+readme = "README.md"
+packages = [{include = "milkman_py"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+eth_abi = "2.2.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
