@@ -28,15 +28,11 @@ MILKMAN_ADDRESS = "0x5D9C7CBeF995ef16416D963EaCEEC8FcA2590731"
 PRICE_CHECKER_ADDRESS = SUSHI_DYNAMIC_SLIPPAGE_PRICE_CHECKER_ADDRESS
 HASH_HELPER_ADDRESS = "0x429A101f42781C53c088392956c95F0A32437b8C"
 
-INFURA_KEY = "" # put your own here :)
+INFURA_KEY = ""  # put your own here :)
 
 
 def main():
-    w3 = Web3(
-        Web3.HTTPProvider(
-            f"https://goerli.infura.io/v3/{INFURA_KEY}"
-        )
-    )
+    w3 = Web3(Web3.HTTPProvider(f"https://goerli.infura.io/v3/{INFURA_KEY}"))
 
     unscaled_weth_to_sell = 0.005
     milkman = Contract(MILKMAN_ADDRESS)
