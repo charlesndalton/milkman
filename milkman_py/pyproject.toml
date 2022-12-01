@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "milkman-py"
-version = "0.0.6"
+version = "0.0.7"
 description = ""
 authors = ["charlesndalton <charles.n.dalton@gmail.com>"]
 readme = "README.md"
