@@ -1,0 +1,7 @@
+setup.py
+milkman_py/__init__.py
+milkman_py/main.py
+milkman_py.egg-info/PKG-INFO
+milkman_py.egg-info/SOURCES.txt
+milkman_py.egg-info/dependency_links.txt
+milkman_py.egg-info/top_level.txt
