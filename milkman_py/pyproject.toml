@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "milkman-py"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python SDK for interacting with Milkman, a smart contract system that allows smart contracts (incl. Gnosis Safes) to swap assets through the CoW protocol."
 authors = ["charlesndalton <charles.n.dalton@gmail.com>"]
 readme = "README.md"
@@ -8,7 +8,7 @@ packages = [{include = "milkman_py"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-eth_abi = "2.2.0"
+eth_abi = "2.1.1"
 
 
 [build-system]
