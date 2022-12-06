@@ -21,8 +21,10 @@ For mainnet,
 - Meta 
     - dynamic slippage price checker: 0xf447Bf3CF8582E4DaB9c34C5b261A7b6AD4D6bDD
     - expected out calculator: 0x830f28591CAc072f74721e51B0954539817b14B9
+- Hash helper: 0x49Fc95c908902Cf48f5F26ed5ADE284de3b55197
 
 For goerli,
 - SushiSwap (UniV2)
     - dynamic slippage price checker: 0x5A5633909060c75e5B7cB4952eFad918c711F587
     - expected out calculator: 0x26eef32497909Bb27E9B40091246c0aA39d1A7dB
+- Hash helper: 0x429A101f42781C53c088392956c95F0A32437b8C
