@@ -1,6 +1,6 @@
 ## Deployment addresses 
 
-The Milkman address is **0x9D3164a9428A85F719e7f509eA47ca5D60B55E5C**, which is the same on Goerli and mainnet. Price checker addresses are per-network.
+The Milkman address is **0x11C76AD590ABDFFCD980afEC9ad951B160F02797**, which is the same on Goerli and mainnet. Price checker addresses are per-network.
 
 For mainnet,
 - SushiSwap (UniV2)
