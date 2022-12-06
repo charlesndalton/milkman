@@ -12,11 +12,10 @@ import {GPv2Order} from "@cow-protocol/contracts/libraries/GPv2Order.sol";
 /// @title Milkman
 /// @author @charlesndalton
 /// @notice A layer on top of the CoW Protocol that allows smart contracts (DAOs, Gnosis Safes, protocols, etc.) to submit swaps. Swaps are MEV-protected. Use with atypical tokens (e.g., rebasing tokens) not recommended.
-/// @dev For each requested swap, Milkman creates a clone of itself, and moves `amountIn` of `fromToken` into the clone. The clone pre-approves the amount to the CoW settlement contract. The clone also stores a hash of the swap's variables, something like hash({amountIn: 1000, fromToken: USDC, toToken: DAI, etc.}). Then, an off-chain server creates a CoW order on behalf of the clone, and encodes in that order's `signature` data used to generate the order. The clone does checks, including calling a user-provided `priceChecker` (which could for example check SushiSwap to see if what they could get out of SushiSwap was at least 90% of the order's `minOut`), and if everything looks good it returns true, which allows the swap to go through.
+/// @dev For each requested swap, Milkman creates a clone of itself, and moves `amountIn` of `fromToken` into the clone. The clone pre-approves the amount to the CoW settlement contract. The clone also stores a hash of the swap's variables, something like hash({amountIn: 1000, fromToken: USDC, toToken: DAI, etc.}). Then, an off-chain server creates a CoW order on behalf of the clone. Before this CoW order can be 'settled' (before amountIn can be pulled out of the clone), the clone runs checks on the order. These checks include calling a user-provided `priceChecker`, which could for example check SushiSwap to see if what they could get out of SushiSwap was at least 90% of the order's `minOut`.
 contract Milkman {
     using SafeERC20 for IERC20;
     using GPv2Order for GPv2Order.Data;
-    using GPv2Order for bytes;
     using SafeMath for uint256;
 
     event SwapRequested(
@@ -35,30 +34,32 @@ contract Milkman {
         0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
     /// @dev The settlement contract's EIP-712 domain separator. Milkman uses this to verify that a provided UID matches provided order parameters.
     bytes32 public constant DOMAIN_SEPARATOR =
-        // 0xfb378b35457022ecc5709ae5dafad9393c1387ae6d8ce24913a0c969074c07fb;
         0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943;
     bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
     bytes4 internal constant NON_MAGIC_VALUE = 0xffffffff;
     bytes32 internal constant ROOT_MILKMAN_SWAP_HASH =
         0xca11ab1efacade00000000000000000000000000000000000000000000000000;
 
-    /// @dev the Milkman deployed by an EOA, in contrast to Milkman 'order contracts' deployed in requestSwapExactTokensForTokens
+    /// @dev the Milkman deployed by an EOA, in contrast to Milkman 'order contracts' deployed in invocations of requestSwapExactTokensForTokens
     address internal immutable ROOT_MILKMAN;
 
-    /// @dev Hash of the swap data. Equal to `ROOT_MILKMAN_SWAP_HASH` on the root contract and set to the real swap hash on order contracts.
+    /// @dev Hash of the order data, hashed like so:
+    ///      kekkak256(abi.encode(orderCreator, receiver, fromToken, toToken, amountIn, priceChecker, priceCheckerData)).
+    ///      In the root contract, it's set to `ROOT_MILKMAN_SWAP_HASH`.
     bytes32 public swapHash = ROOT_MILKMAN_SWAP_HASH;
 
     constructor() {
         ROOT_MILKMAN = address(this);
     }
 
-    /// @notice Swap an exact amount of tokenIn for a market-determined amount of tokenOut.
+    /// @notice Asynchronously swap an exact amount of tokenIn for a market-determined amount of tokenOut.
+    /// @dev Swaps are usually completed in ~2 minutes.
     /// @param amountIn The number of tokens to sell.
     /// @param fromToken The token that the user wishes to sell.
     /// @param toToken The token that the user wishes to receive.
     /// @param to Who should receive the tokens.
-    /// @param priceChecker An optional contract (use address(0) for none) that checks, on behalf of the user, that the CoW protocol order that Milkman signs has set a reasonable minOut.
-    /// @param priceCheckerData Optional data that gets passed to the price checker.
+    /// @param priceChecker A contract that verifies an order (mainly its minOut and fee) before Milkman signs it.
+    /// @param priceCheckerData Data that gets passed to the price checker.
     function requestSwapExactTokensForTokens(
         uint256 amountIn,
         IERC20 fromToken,
@@ -67,8 +68,8 @@ contract Milkman {
         address priceChecker,
         bytes calldata priceCheckerData
     ) external {
-        require(address(this) == ROOT_MILKMAN, "!root_milkman"); // dev: can't call `requestSwapExactTokensForTokens` from order contracts
-        require(priceChecker != address(0), "!price_checker_set"); // dev: need to supply a valid price checker
+        require(address(this) == ROOT_MILKMAN, "!root_milkman"); // can't call `requestSwapExactTokensForTokens` from order contracts
+        require(priceChecker != address(0), "!price_checker"); // need to supply a valid price checker
 
         address orderContract = createOrderContract();
 
@@ -101,15 +102,14 @@ contract Milkman {
     }
 
     function initialize(IERC20 fromToken, bytes32 _swapHash) external {
-        // below check also prevents root contract from being initialized
-        require(swapHash == bytes32(0) && _swapHash != bytes32(0)); // dev: cannot re-initialize an order contract
+        require(swapHash == bytes32(0) && _swapHash != bytes32(0), "!reinit"); // also prevents root contract from being initialized
         swapHash = _swapHash;
 
         fromToken.safeApprove(VAULT_RELAYER, type(uint256).max);
     }
 
-    /// @notice Cancel a requested swap. May be useful if you try to swap a token that CoW doesn't support, for example.
-    /// @dev Passing in the other parameters is required to prove that `msg.sender` is the orderCreator of this order, which is verified by hashing the parameters and checking if the digest matches `swapHash`.
+    /// @notice Cancel a requested swap, sending the tokens back to the order creator.
+    /// @dev `msg.sender` must be the original order creator. The other parameters are required to verify that this is the case (kind of like a merkle proof).
     function cancelSwap(
         uint256 amountIn,
         IERC20 fromToken,
@@ -134,7 +134,7 @@ contract Milkman {
             )
         );
 
-        require(_storedSwapHash == _calculatedSwapHash, "!orderCreator");
+        require(_storedSwapHash == _calculatedSwapHash, "!valid_creator_proof");
 
         fromToken.safeTransfer(msg.sender, amountIn);
     }
@@ -167,7 +167,7 @@ contract Milkman {
         require(
             _order.validTo >= block.timestamp + 5 minutes,
             "expires_too_soon"
-        ); // we might not need this anymore, since the griefing attack doesn't really make sense when multiple orders can be active at the same time
+        );
 
         require(!_order.partiallyFillable, "!fill_or_kill");
 
