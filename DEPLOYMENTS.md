@@ -5,6 +5,7 @@ The Milkman address is **0x9D3164a9428A85F719e7f509eA47ca5D60B55E5C**, which is 
 For mainnet,
 - SushiSwap (UniV2)
     - dynamic slippage price checker: 0x50d03c63344acd9B723243046F680D83D007A2de 
+    - fixed (2%) slippage price checker: 0x00e577093BEA1eb273bc497a61E3F2658369b226
     - expected out calculator: 0xd6b20d7d7bdaF450714c26F237a3e5E2418237F1
 - Uniswap V2 (UniV2)
     - dynamic slippage price checker: 0x17fb579f14F8Fa9d1daCE1716Fd0E70B952E145b
