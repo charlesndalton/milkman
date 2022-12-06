@@ -105,7 +105,7 @@ contract Milkman {
         require(swapHash == bytes32(0) && _swapHash != bytes32(0)); // dev: cannot re-initialize an order contract
         swapHash = _swapHash;
 
-        fromToken.approve(VAULT_RELAYER, type(uint256).max);
+        fromToken.safeApprove(VAULT_RELAYER, type(uint256).max);
     }
 
     /// @notice Cancel a requested swap. May be useful if you try to swap a token that CoW doesn't support, for example.
