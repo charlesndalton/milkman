@@ -23,6 +23,7 @@ For mainnet,
     - dynamic slippage price checker: 0xf447Bf3CF8582E4DaB9c34C5b261A7b6AD4D6bDD
     - expected out calculator: 0x830f28591CAc072f74721e51B0954539817b14B9
 - Hash helper: 0x49Fc95c908902Cf48f5F26ed5ADE284de3b55197
+- 'Valid from' price checker decorator: 0xd64090C65a5E8919E5524Fa3F1322922a3408601
 
 For goerli,
 - SushiSwap (UniV2)

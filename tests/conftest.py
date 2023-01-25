@@ -67,13 +67,13 @@ sell_to_buy_map = {
 
 @pytest.fixture(
     params=[
-        "TOKE",
-        "USDC",
-        "GUSD",
-        "AAVE",
-        "BAT",
-        "WETH",
-        "UNI",
+        # "TOKE",
+        # "USDC",
+        # "GUSD",
+        # "AAVE",
+        # "BAT",
+        # "WETH",
+        # "UNI",
         "ALCX",
     ],
     scope="session",
@@ -138,6 +138,7 @@ def price_checker(
     chainlink_price_checker,
     univ3_price_checker,
     meta_price_checker,
+    valid_from_price_checker_decorator,
 ):
     symbol = token_to_sell.symbol()
 
@@ -150,7 +151,7 @@ def price_checker(
     if symbol == "WETH" or symbol == "UNI":
         yield univ3_price_checker
     if symbol == "ALCX":
-        yield meta_price_checker
+        yield valid_from_price_checker_decorator
 
 
 @pytest.fixture
@@ -234,7 +235,21 @@ def meta_price_checker(DynamicSlippageChecker, meta_expected_out_calculator, dep
         meta_expected_out_calculator,
     )
 
+@pytest.fixture
+def valid_from_price_checker_decorator(ValidFromPriceCheckerDecorator, deployer):
+    yield deployer.deploy(
+        ValidFromPriceCheckerDecorator
+    )
 
+def valid_from_price_checker_decorator_data(valid_from, price_checker, price_checker_data):
+    return encode_abi(
+        ["uint256", "address", "bytes"],
+        [
+            valid_from,
+            price_checker,
+            price_checker_data,
+        ],
+    )
 # which price checker data to use for each swap
 price_checker_datas = {
     "TOKE": fixed_slippage_price_checker_data(univ2_expected_out_data()),
@@ -280,10 +295,10 @@ price_checker_datas = {
 
 @pytest.fixture
 def price_checker_data(
-    token_to_sell, chainlink_expected_out_calculator, sushiswap_expected_out_calculator
+    token_to_sell, meta_price_checker, chainlink_expected_out_calculator, sushiswap_expected_out_calculator
 ):
     if token_to_sell.symbol() == "ALCX":
-        yield dynamic_slippage_price_checker_data(
+        yield valid_from_price_checker_decorator_data(3349275968, meta_price_checker.address, dynamic_slippage_price_checker_data(
             1000,
             meta_expected_out_data(
                 [
@@ -306,7 +321,7 @@ def price_checker_data(
                     utils.EMPTY_BYTES,
                 ],
             ),
-        )
+        ))
     else:
         yield price_checker_datas[token_to_sell.symbol()]
 

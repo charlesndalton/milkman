@@ -304,29 +304,35 @@ def create_offchain_order(
 
 def get_quote(sell_token, buy_token, sell_amount):
     # get the fee + the buy amount after fee
-    fee_and_quote = "https://api.cow.fi/mainnet/api/v1/feeAndQuote/sell"
-    get_params = {
+
+    quote_url = "https://api.cow.fi/mainnet/api/v1/quote"
+    post_body = {
         "sellToken": sell_token.address,
         "buyToken": buy_token.address,
-        "sellAmountBeforeFee": int(sell_amount),
+        "from": "0x5F4bd1b3667127Bf44beBBa9e5d736B65A1677E5",
+        "kind": "sell",
+        "sellAmountBeforeFee": str(sell_amount),
+        "priceQuality": "fast",
+        "signingScheme": "eip1271",
+        "verificationGasLimit": 30000
     }
 
-    r = requests.get(fee_and_quote, params=get_params)
+    r = requests.post(quote_url, json=post_body)
+
     times_to_retry = 3
     while times_to_retry > 0:
         if r.ok and r.status_code == 200:
             break
-
         time.sleep(1)
-
-        r = requests.get(fee_and_quote, params=get_params)
+        r = requests.post(quote_url, json=post_body)
         times_to_retry -= 1
     print(f"Response: {r}")
     assert r.ok and r.status_code == 200
 
-    # These two values are needed to create an order
-    fee_amount = int(r.json()["fee"]["amount"])
-    buy_amount_after_fee = int(r.json()["buyAmountAfterFee"])
+    quote = r.json()["quote"]
+    fee_amount = int(quote["feeAmount"])
+    buy_amount_after_fee = int(quote["buyAmount"])
+    valid_to = int(quote["validTo"])
 
     return (fee_amount, buy_amount_after_fee)
 
