@@ -67,13 +67,13 @@ sell_to_buy_map = {
 
 @pytest.fixture(
     params=[
-        # "TOKE",
-        # "USDC",
-        # "GUSD",
-        # "AAVE",
-        # "BAT",
-        # "WETH",
-        # "UNI",
+        "TOKE",
+        "USDC",
+        "GUSD",
+        "AAVE",
+        "BAT",
+        "WETH",
+        "UNI",
         "ALCX",
     ],
     scope="session",
@@ -295,10 +295,10 @@ price_checker_datas = {
 
 @pytest.fixture
 def price_checker_data(
-    token_to_sell, meta_price_checker, chainlink_expected_out_calculator, sushiswap_expected_out_calculator
+    chain, token_to_sell, meta_price_checker, chainlink_expected_out_calculator, sushiswap_expected_out_calculator
 ):
     if token_to_sell.symbol() == "ALCX":
-        yield valid_from_price_checker_decorator_data(3349275968, meta_price_checker.address, dynamic_slippage_price_checker_data(
+        yield valid_from_price_checker_decorator_data(chain.time(), meta_price_checker.address, dynamic_slippage_price_checker_data(
             1000,
             meta_expected_out_data(
                 [

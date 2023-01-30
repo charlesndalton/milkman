@@ -18,7 +18,7 @@ contract ValidFromPriceCheckerDecorator is IPriceChecker {
         (uint256 _validFrom, address _priceChecker, bytes memory _data) = abi
             .decode(_data, (uint256, address, bytes));
 
-        if (_validFrom < block.timestamp) {
+        if (_validFrom > block.timestamp) {
             return false;
         }
 
