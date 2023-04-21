@@ -42,9 +42,21 @@ interface IVault {
 }
 
 library VaultReentrancyLib {
-    function ensureNotInVaultContext(IVault vault) internal {
-        IVault.UserBalanceOp[] memory noop = new IVault.UserBalanceOp[](0);
-        vault.manageUserBalance(noop);
+    function ensureNotInVaultContext(IVault vault) internal view {
+        bytes32 REENTRANCY_ERROR_HASH = keccak256(
+            abi.encodeWithSignature("Error(string)", "BAL#400")
+        );
+
+        // read-only re-entrancy protection - this call is always unsuccessful but we need to make sure
+        // it didn't fail due to a re-entrancy attack
+        (, bytes memory revertData) = address(vault).staticcall(
+            abi.encodeWithSelector(
+                vault.manageUserBalance.selector,
+                new address[](0)
+            )
+        );
+
+        require(keccak256(revertData) != REENTRANCY_ERROR_HASH);
     }
 }
 
@@ -55,12 +67,12 @@ contract SingleSidedBalancerBalWethExpectedOutCalculator is
     using FixedPoint for uint256;
     using VaultReentrancyLib for IVault;
 
-    address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address internal constant BAL = 0xba100000625a3754423978a60c9317c58a424e3D;
-    address internal constant BAL_WETH_POOL =
-        0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56;
-    address internal constant BALANCER_VAULT =
-        0xBA12222222228d8Ba445958a75a0704d566BF2C8;
+    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant BAL = 0xba100000625a3754423978a60c9317c58a424e3D;
+    IWeightedPool public constant BAL_WETH_POOL =
+        IWeightedPool(0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56);
+    IVault internal constant BALANCER_VAULT =
+        IVault(0xBA12222222228d8Ba445958a75a0704d566BF2C8);
     IPriceFeed internal constant BAL_ETH_FEED =
         IPriceFeed(0xC1438AA3823A6Ba0C159CfA8D98dF5A994bA120b);
 
@@ -74,27 +86,60 @@ contract SingleSidedBalancerBalWethExpectedOutCalculator is
         address _toToken,
         bytes calldata
     ) external view override returns (uint256) {
-        // require(_toToken == BAL_WETH_POOL);
-        // require(_fromToken == WETH || _fromToken == BAL);
+        require(_toToken == BAL_WETH_POOL);
+        require(_fromToken == WETH || _fromToken == BAL);
 
-        IWeightedPool pool = IWeightedPool(BAL_WETH_POOL);
-        IVault vault = IVault(BALANCER_VAULT);
+        BALANCER_VAULT.ensureNotInVaultContext();
 
-        // need to troubleshoot this since this is a read-only function
-        // vault.ensureNotInVaultContext();
-
-        uint256 kOverS = pool.getInvariant().mul(1e18).div(pool.totalSupply());
-
-        uint256 ethPriceOfBal = uint256(BAL_ETH_FEED.latestAnswer());
-
-        uint256 balFactor = ethPriceOfBal.mul(1e18).div(ZERO_POINT_EIGHT).powUp(
-            ZERO_POINT_EIGHT
-        );
-        uint256 ethFactor = FixedPoint.ONE.mul(1e18).div(ZERO_POINT_TWO).powUp(
-            ZERO_POINT_TWO
+        uint256 kOverS = BAL_WETH_POOL.getInvariant().mul(1e18).div(
+            BAL_WETH_POOL.totalSupply()
         );
 
-        // this doesn't return the actual output, just what a BPT is worth in 1 ETH
-        return kOverS.mul(balFactor).div(1e18).mul(ethFactor).div(1e18);
+        if (_fromToken == WETH) {
+            uint256 ethPriceOfBal = uint256(BAL_ETH_FEED.latestAnswer());
+
+            uint256 balFactor = ethPriceOfBal
+                .mul(1e18)
+                .div(ZERO_POINT_EIGHT)
+                .powUp(ZERO_POINT_EIGHT);
+            uint256 ethFactor = FixedPoint
+                .ONE
+                .mul(1e18)
+                .div(ZERO_POINT_TWO)
+                .powUp(ZERO_POINT_TWO);
+
+            // what a BPT is worth in ETH
+            uint256 ethValueOfBPT = kOverS
+                .mul(balFactor)
+                .div(1e18)
+                .mul(ethFactor)
+                .div(1e18);
+
+            return _amountIn.mul(1e18).div(ethValueOfBPT);
+        } else {
+            // how many bal per eth?
+            uint256 balPriceOfEth = FixedPoint.ONE.mul(1e18).div(
+                uint256(BAL_ETH_FEED.latestAnswer())
+            );
+
+            uint256 balFactor = FixedPoint
+                .ONE
+                .mul(1e18)
+                .div(ZERO_POINT_EIGHT)
+                .powUp(ZERO_POINT_EIGHT);
+            uint256 ethFactor = balPriceOfEth
+                .mul(1e18)
+                .div(ZERO_POINT_TWO)
+                .powUp(ZERO_POINT_TWO);
+
+            // what a BPT is worth in BAL
+            uint256 balValueOfBPT = kOverS
+                .mul(balFactor)
+                .div(1e18)
+                .mul(ethFactor)
+                .div(1e18);
+
+            return _amountIn.mul(1e18).div(balValueOfBPT);
+        }
     }
 }
