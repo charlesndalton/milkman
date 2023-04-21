@@ -38,6 +38,7 @@ def deployer(accounts):
 # WETH -> WBTC, $80M & Uniswap as the price checker
 # UNI -> USDT, $500k & Uniswap as the price checker
 # ALCX -> TOKE, $100k, Meta price checker with Chainlink and Sushiswap
+# BAL -> WETH/BAL, $2M, SSB price checker
 token_address = {
     "TOKE": "0x2e9d63788249371f1DFC918a52f8d799F4a38C94",
     "DAI": "0x6b175474e89094c44da98b954eedeac495271d0f",
@@ -51,6 +52,8 @@ token_address = {
     "WBTC": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
     "UNI": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
     "ALCX": "0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF",
+    "BAL": "0xba100000625a3754423978a60c9317c58a424e3D",
+    "BAL/WETH": "0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56",
 }
 
 sell_to_buy_map = {
@@ -62,6 +65,7 @@ sell_to_buy_map = {
     "WETH": "WBTC",
     "UNI": "USDT",
     "ALCX": "TOKE",
+    "BAL": "BAL/WETH",
 }
 
 
@@ -75,6 +79,7 @@ sell_to_buy_map = {
         "WETH",
         "UNI",
         "ALCX",
+        "BAL",
     ],
     scope="session",
     autouse=True,
@@ -97,6 +102,7 @@ amounts = {
     "WETH": 50_000,
     "UNI": 80_000,
     "ALCX": 4_000,
+    "BAL": 300_000,
 }
 
 
@@ -122,6 +128,7 @@ whale_address = {
     "BAT": "0x6C8c6b02E7b2BE14d4fA6022Dfd6d75921D90E4E",
     "UNI": "0x1a9C8182C09F50C8318d769245beA52c32BE35BC",
     "ALCX": "0x000000000000000000000000000000000000dEaD",
+    "BAL": "0x10A19e7eE7d7F8a52822f6817de8ea18204F2e4f",
 }
 
 
@@ -139,6 +146,7 @@ def price_checker(
     univ3_price_checker,
     meta_price_checker,
     valid_from_price_checker_decorator,
+    ssb_bal_weth_price_checker,
 ):
     symbol = token_to_sell.symbol()
 
@@ -152,6 +160,8 @@ def price_checker(
         yield univ3_price_checker
     if symbol == "ALCX":
         yield valid_from_price_checker_decorator
+    if symbol == "BAL":
+        yield ssb_bal_weth_price_checker
 
 
 @pytest.fixture
@@ -171,6 +181,9 @@ def sushiswap_expected_out_calculator(UniV2ExpectedOutCalculator, deployer):
         UniV2ExpectedOutCalculator, "SUSHI_EXPECTED_OUT_CALCULATOR", sushi_router
     )
 
+@pytest.fixture
+def ssb_bal_weth_expected_out_calculator(SingleSidedBalancerBalWethExpectedOutCalculator, deployer):
+    yield deployer.deploy(SingleSidedBalancerBalWethExpectedOutCalculator)
 
 @pytest.fixture
 def univ3_expected_out_calculator(UniV3ExpectedOutCalculator, deployer):
@@ -236,6 +249,14 @@ def meta_price_checker(DynamicSlippageChecker, meta_expected_out_calculator, dep
     )
 
 @pytest.fixture
+def ssb_bal_weth_price_checker(DynamicSlippageChecker, ssb_bal_weth_expected_out_calculator, deployer):
+    yield deployer.deploy(
+        DynamicSlippageChecker,
+        "SSB_BAL_WETH_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
+        ssb_bal_weth_expected_out_calculator
+    )
+
+@pytest.fixture
 def valid_from_price_checker_decorator(ValidFromPriceCheckerDecorator, deployer):
     yield deployer.deploy(
         ValidFromPriceCheckerDecorator
@@ -290,6 +311,7 @@ price_checker_datas = {
             [int(30), int(30), int(1)],
         ),
     ),  # 6% slippage
+    "BAL": dynamic_slippage_price_checker_data(50, utils.EMPTY_BYTES), # 0.5% slippage
 }
 
 

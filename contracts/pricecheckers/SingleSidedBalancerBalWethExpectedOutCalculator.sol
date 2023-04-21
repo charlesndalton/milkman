@@ -86,7 +86,7 @@ contract SingleSidedBalancerBalWethExpectedOutCalculator is
         address _toToken,
         bytes calldata
     ) external view override returns (uint256) {
-        require(_toToken == BAL_WETH_POOL);
+        require(_toToken == address(BAL_WETH_POOL));
         require(_fromToken == WETH || _fromToken == BAL);
 
         BALANCER_VAULT.ensureNotInVaultContext();
