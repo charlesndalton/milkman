@@ -10,6 +10,7 @@ autofetch_sources: True
 dependencies:
   - OpenZeppelin/openzeppelin-contracts@3.4.0-solc-0.7
   - cowprotocol/contracts@1.3.1
+  - balancer/balancer-v2-monorepo@weighted-deployment
 
 # path remapping to support imports from GitHub/NPM
 compiler:
@@ -18,6 +19,7 @@ compiler:
     remappings:
       - "@openzeppelin=OpenZeppelin/openzeppelin-contracts@3.4.0-solc-0.7"
       - "@cow-protocol=cowprotocol/contracts@1.3.1/src"
+      - "@balancer=balancer/balancer-v2-monorepo@weighted-deployment/contracts"
 
 reports:
   exclude_contracts:
