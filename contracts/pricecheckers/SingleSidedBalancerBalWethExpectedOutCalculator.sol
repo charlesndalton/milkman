@@ -96,9 +96,10 @@ contract SingleSidedBalancerBalWethExpectedOutCalculator is
         );
 
         if (_fromToken == WETH) {
-            uint256 ethPriceOfBal = uint256(BAL_ETH_FEED.latestAnswer());
+            int256 ethPriceOfBal = BAL_ETH_FEED.latestAnswer();
+            require(ethPriceOfBal > 0);
 
-            uint256 balFactor = ethPriceOfBal
+            uint256 balFactor = uint256(ethPriceOfBal)
                 .mul(1e18)
                 .div(ZERO_POINT_EIGHT)
                 .powUp(ZERO_POINT_EIGHT);
@@ -118,8 +119,11 @@ contract SingleSidedBalancerBalWethExpectedOutCalculator is
             return _amountIn.mul(1e18).div(ethValueOfBPT);
         } else {
             // how many bal per eth?
+            int256 ethPriceOfBal = BAL_ETH_FEED.latestAnswer();
+            require(ethPriceOfBal > 0);
+
             uint256 balPriceOfEth = FixedPoint.ONE.mul(1e18).div(
-                uint256(BAL_ETH_FEED.latestAnswer())
+                uint256(ethPriceOfBal)
             );
 
             uint256 balFactor = FixedPoint

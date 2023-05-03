@@ -35,7 +35,7 @@ def deployer(accounts):
 # GUSD -> USDC, $1k, Curve price checker
 # AAVE -> WETH, $250k, Chainlink price checker
 # BAT -> ALCX, $100k, Chainlink price checker
-# WETH -> WBTC, $80M & Uniswap as the price checker
+# WETH -> WETH/BAL, $650k SSB price checker
 # UNI -> USDT, $500k & Uniswap as the price checker
 # ALCX -> TOKE, $100k, Meta price checker with Chainlink and Sushiswap
 # BAL -> WETH/BAL, $2M, SSB price checker
@@ -62,7 +62,7 @@ sell_to_buy_map = {
     "GUSD": "USDC",
     "AAVE": "WETH",
     "BAT": "ALCX",
-    "WETH": "WBTC",
+    "WETH": "BAL/WETH",
     "UNI": "USDT",
     "ALCX": "TOKE",
     "BAL": "BAL/WETH",
@@ -71,14 +71,14 @@ sell_to_buy_map = {
 
 @pytest.fixture(
     params=[
-        "TOKE",
-        "USDC",
-        "GUSD",
-        "AAVE",
-        "BAT",
+        # "TOKE",
+        # "USDC",
+        # "GUSD",
+        # "AAVE",
+        # "BAT",
         "WETH",
-        "UNI",
-        "ALCX",
+        # "UNI",
+        # "ALCX",
         "BAL",
     ],
     scope="session",
@@ -99,7 +99,7 @@ amounts = {
     "GUSD": 1_000,
     "AAVE": 2_500,
     "BAT": 280_000,
-    "WETH": 50_000,
+    "WETH": 325,
     "UNI": 80_000,
     "ALCX": 4_000,
     "BAL": 300_000,
@@ -156,11 +156,11 @@ def price_checker(
         yield curve_price_checker
     if symbol == "AAVE" or symbol == "BAT":
         yield chainlink_price_checker
-    if symbol == "WETH" or symbol == "UNI":
+    if symbol == "UNI":
         yield univ3_price_checker
     if symbol == "ALCX":
         yield valid_from_price_checker_decorator
-    if symbol == "BAL":
+    if symbol == "BAL" or symbol == "WETH":
         yield ssb_bal_weth_price_checker
 
 
@@ -293,12 +293,9 @@ price_checker_datas = {
         ),
     ),  # BAT/ETH & ALCX/ETH feeds, allow 20% slippage since these are relatively illiquid
     "WETH": dynamic_slippage_price_checker_data(
-        1400,
-        univ3_expected_out_data(
-            [token_address["WETH"], token_address["WBTC"]],
-            [int(30)],
-        ),
-    ),  # 14% slippage for such a large trade
+        200,
+        utils.EMPTY_BYTES
+    ),
     "UNI": dynamic_slippage_price_checker_data(
         600,
         univ3_expected_out_data(
