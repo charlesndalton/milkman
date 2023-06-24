@@ -17,8 +17,7 @@ def test_complete_swap(
     price_checker_data,
     chain,
     hash_helper,
-    chainlink_price_checker,
-    sushiswap_price_checker,
+    gas_checker,
 ):
     token_to_sell.approve(milkman, amount, {"from": user})
 
@@ -102,6 +101,10 @@ def test_complete_swap(
     )
 
     assert to_bytes(is_valid_sig) == to_bytes(utils.EIP_1271_MAGIC_VALUE)
+
+    tx = gas_checker.isValidSignatureCheck(order_contract, order_digest, signature_encoded_order)
+
+    assert tx.gas_used < 1_000_000
 
 
 # the keeper passes in order data that doesn't match the canonical order (what was used to generate the UID)

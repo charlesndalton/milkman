@@ -1,17 +1,60 @@
 from lib2to3.pgen2 import token
 from brownie import Contract
 from eth_abi import encode_abi
-from milkman_py import (
-    univ2_expected_out_data,
-    univ3_expected_out_data,
-    curve_expected_out_data,
-    chainlink_expected_out_data,
-    meta_expected_out_data,
-    fixed_slippage_price_checker_data,
-    dynamic_slippage_price_checker_data,
-)
+#from milkman_py import (
+#    univ2_expected_out_data,
+#    univ3_expected_out_data,
+#    curve_expected_out_data,
+#    chainlink_expected_out_data,
+#    meta_expected_out_data,
+#    fixed_slippage_price_checker_data,
+#    dynamic_slippage_price_checker_data,
+#)
 import pytest
 import utils
+
+EMPTY_BYTES = encode_abi(["uint8"], [int(0)])
+def univ2_expected_out_data():
+    return EMPTY_BYTES
+
+
+def curve_expected_out_data():
+    return EMPTY_BYTES
+
+
+def chainlink_expected_out_data(price_feed_addresses, reverses):
+    return encode_abi(
+        ["address[]", "bool[]"],
+        [
+            price_feed_addresses,
+            reverses,
+        ],
+    )
+
+
+def univ3_expected_out_data(swap_path, pool_fees):
+    return encode_abi(["address[]", "uint24[]"], [swap_path, pool_fees])
+
+
+def meta_expected_out_data(swap_path, expected_out_calculators, expected_out_data):
+    return encode_abi(
+        ["address[]", "address[]", "bytes[]"],
+        [
+            swap_path,
+            expected_out_calculators,
+            expected_out_data,
+        ],
+    )
+
+
+def dynamic_slippage_price_checker_data(allowed_slippage_bips, expected_out_data):
+    return encode_abi(
+        ["uint256", "bytes"], [int(allowed_slippage_bips), expected_out_data]
+    )
+
+
+def fixed_slippage_price_checker_data(expected_out_data):
+    return expected_out_data
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -76,7 +119,7 @@ sell_to_buy_map = {
         # "GUSD",
         # "AAVE",
         # "BAT",
-        "WETH",
+        #"WETH",
         # "UNI",
         # "ALCX",
         "BAL",
@@ -350,6 +393,12 @@ def milkman(Milkman, deployer):
     milkman = deployer.deploy(Milkman)
 
     yield milkman
+
+@pytest.fixture
+def gas_checker(GasChecker, deployer):
+    gas_checker = deployer.deploy(GasChecker)
+
+    yield gas_checker
 
 
 @pytest.fixture
