@@ -4,7 +4,7 @@ pragma abicoder v2;
 
 import {IPriceChecker} from "../../interfaces/IPriceChecker.sol";
 
-/// Specify a maximum allowed fee, denominated in `fromToken`.
+/// Specify a validFrom timestamp, which the current block has to have surpassed in order for the order to be valid.
 /// This decorates an existing price checker to allow for composability.
 contract ValidFromPriceCheckerDecorator is IPriceChecker {
     function checkPrice(
