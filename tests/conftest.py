@@ -196,6 +196,7 @@ def price_checker(
     meta_price_checker,
     valid_from_price_checker_decorator,
     ssb_bal_weth_price_checker,
+    fixed_min_out_price_checker,
 ):
     symbol = token_to_sell.symbol()
 
