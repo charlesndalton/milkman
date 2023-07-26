@@ -113,12 +113,12 @@ def test_complete_swap(
         price_checker_data,
     )
 
-
     tx = gas_checker.isValidSignatureCheck(
         order_contract, order_digest, signature_encoded_order
     )
 
     assert tx.gas_used < 1_000_000
+
 
 def test_bad_price(
     milkman,
@@ -203,6 +203,7 @@ def test_bad_price(
 
     with brownie.reverts("invalid_min_out"):
         order_contract.isValidSignature(order_digest, signature_encoded_order)
+
 
 # the keeper passes in order data that doesn't match the canonical order (what was used to generate the UID)
 def test_mismatched_order(
