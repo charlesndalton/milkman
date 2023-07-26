@@ -13,6 +13,10 @@ interface IPriceFeed {
     function decimals() external view returns (uint8);
 }
 
+interface IERC20MetaData {
+    function decimals() external view returns (uint8);
+}
+
 /**
  * @notice Checks a swap against Chainlink-compatible price feeds.
  * @dev Doesn't care about how long ago the price feed answer was. Another expected out calculator can be built if this is desired.
@@ -47,13 +51,15 @@ contract ChainlinkExpectedOutCalculator is IExpectedOutCalculator {
             (address[], bool[])
         );
 
-        return getExpectedOutFromChainlink(_priceFeeds, _reverses, _amountIn); // how much Chainlink says we'd get out of this trade
+        return getExpectedOutFromChainlink(_priceFeeds, _reverses, _amountIn, _fromToken, _toToken); // how much Chainlink says we'd get out of this trade
     }
 
     function getExpectedOutFromChainlink(
         address[] memory _priceFeeds,
         bool[] memory _reverses,
-        uint256 _amountIn
+        uint256 _amountIn,
+        address _fromToken,
+        address _toToken
     ) internal view returns (uint256 _expectedOutFromChainlink) {
         uint256 _priceFeedsLen = _priceFeeds.length;
 
@@ -84,6 +90,16 @@ contract ChainlinkExpectedOutCalculator is IExpectedOutCalculator {
                 : _amountIntoThisIteration.mul(uint256(_latestAnswer)).div(
                     _scaleAnswerBy
                 );
+        }
+
+        uint256 _fromTokenDecimals = uint256(IERC20MetaData(_fromToken).decimals());
+        uint256 _toTokenDecimals = uint256(IERC20MetaData(_toToken).decimals());
+
+        if (_fromTokenDecimals > _toTokenDecimals) {
+            // if fromToken has more decimals than toToken, we need to divide
+            _expectedOutFromChainlink = _expectedOutFromChainlink.div(_fromTokenDecimals.sub(_toTokenDecimals) ** 10);
+        } else if (_fromTokenDecimals < _toTokenDecimals) {
+            _expectedOutFromChainlink = _expectedOutFromChainlink.mul(_toTokenDecimals.sub(_fromTokenDecimals) ** 10);
         }
     }
 }
