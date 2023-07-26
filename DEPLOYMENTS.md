@@ -17,8 +17,8 @@ For mainnet,
     - dynamic slippage price checker: 0x39BF89C4fD9A82c262aD9b0434B4dFafCcFD0727
     - expected out calculator: 0x227665A7D708f861b224A372B011447d6172B668
 - Chainlink
-    - dynamic slippage price checker: 0x4D2c3773E69cB69963bFd376e538eC754409ACFa
-    - expected out calculator: 0xcb3EA6D15854E3E04E638ffB6bB1bA301A304597
+    - dynamic slippage price checker: 0xe80a1C615F75AFF7Ed8F08c9F21f9d00982D666c
+    - expected out calculator: 0xe23fc134382de3eAF871C249C90bf3Acb846C5ab
 - Single-sided Balancer WETH/BAL
     - dynamic slippage price checker: 0xBeA6AAC5bDCe0206A9f909d80a467C93A7D6Da7c
     - expected out calculator: 0xbd0f0A6dcA84cE967336702f875e99D723213849
