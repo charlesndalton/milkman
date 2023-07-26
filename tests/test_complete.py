@@ -5,6 +5,7 @@ from brownie import ZERO_ADDRESS, reverts, Contract
 import utils
 from brownie.convert import to_bytes
 import brownie
+import milkman_py
 
 
 def test_complete_swap(
@@ -18,6 +19,7 @@ def test_complete_swap(
     chain,
     hash_helper,
     gas_checker,
+    ChainlinkExpectedOutCalculator,
 ):
     token_to_sell.approve(milkman, amount, {"from": user})
 
@@ -51,6 +53,118 @@ def test_complete_swap(
     (fee_amount, buy_amount_after_fee) = utils.get_quote(
         token_to_sell, token_to_buy, amount
     )
+    amount_to_sell = amount - fee_amount
+
+    valid_to = chain.time() + 60 * 60 * 24
+
+    signature_encoded_order = utils.encode_order_for_is_valid_signature(
+        token_to_sell,
+        token_to_buy,
+        user,
+        user,
+        amount_to_sell,
+        buy_amount_after_fee,
+        valid_to,
+        fee_amount,
+        price_checker,
+        price_checker_data,
+    )
+
+    # we can't create orders via API, so we need to fake it
+    gpv2_order = (
+        token_to_sell.address,
+        token_to_buy.address,
+        user.address,
+        amount_to_sell,
+        buy_amount_after_fee,
+        valid_to,
+        utils.APP_DATA,
+        fee_amount,
+        utils.KIND_SELL,
+        False,  # fill or kill
+        utils.ERC20_BALANCE,
+        utils.ERC20_BALANCE,
+    )
+
+    order_digest = hash_helper.hash(
+        gpv2_order, to_bytes(utils.DOMAIN_SEPARATOR, "bytes32")
+    )
+
+    # expected_out_calculator = Contract.from_abi("", price_checker.EXPECTED_OUT_CALCULATOR(), ChainlinkExpectedOutCalculator.abi)
+
+    # expected_out_data = milkman_py.chainlink_expected_out_data(
+    #         ["0xA027702dbb89fbd58938e4324ac03B58d812b0E1"], [False]
+    #     )
+
+    # response = expected_out_calculator.getExpectedOut(amount_to_sell, token_to_sell, token_to_buy, expected_out_data)
+
+    is_valid_sig = order_contract.isValidSignature(
+        order_digest, signature_encoded_order
+    )
+
+    assert to_bytes(is_valid_sig) == to_bytes(utils.EIP_1271_MAGIC_VALUE)
+
+    assert price_checker.checkPrice(
+        amount - fee_amount,
+        token_to_sell,
+        token_to_buy,
+        fee_amount,
+        buy_amount_after_fee,
+        price_checker_data,
+    )
+
+    tx = gas_checker.isValidSignatureCheck(
+        order_contract, order_digest, signature_encoded_order
+    )
+
+    assert tx.gas_used < 1_000_000
+
+
+def test_bad_price(
+    milkman,
+    user,
+    token_to_sell,
+    token_to_buy,
+    amount,
+    price_checker,
+    price_checker_data,
+    chain,
+    hash_helper,
+):
+    token_to_sell.approve(milkman, amount, {"from": user})
+
+    tx = milkman.requestSwapExactTokensForTokens(
+        int(amount),
+        token_to_sell,
+        token_to_buy,
+        user,
+        price_checker,
+        price_checker_data,
+        {"from": user},
+    )
+
+    assert tx.events.count("SwapRequested") == 1
+
+    order_contract = Contract.from_abi(
+        "Milkman", tx.events["SwapRequested"]["orderContract"], milkman.abi
+    )
+
+    utils.check_swap_requested(
+        order_contract,
+        user,
+        user,
+        token_to_sell,
+        token_to_buy,
+        amount,
+        price_checker,
+        price_checker_data,
+    )
+
+    (fee_amount, buy_amount_after_fee) = utils.get_quote(
+        token_to_sell, token_to_buy, amount
+    )
+
+    buy_amount_after_fee = int(buy_amount_after_fee * 0.8)
 
     valid_to = chain.time() + 60 * 60 * 24
 
@@ -87,24 +201,8 @@ def test_complete_swap(
         gpv2_order, to_bytes(utils.DOMAIN_SEPARATOR, "bytes32")
     )
 
-    is_valid_sig = order_contract.isValidSignature(
-        order_digest, signature_encoded_order
-    )
-
-    assert price_checker.checkPrice(
-        amount - fee_amount,
-        token_to_sell,
-        token_to_buy,
-        fee_amount,
-        buy_amount_after_fee,
-        price_checker_data,
-    )
-
-    assert to_bytes(is_valid_sig) == to_bytes(utils.EIP_1271_MAGIC_VALUE)
-
-    tx = gas_checker.isValidSignatureCheck(order_contract, order_digest, signature_encoded_order)
-
-    assert tx.gas_used < 1_000_000
+    with brownie.reverts("invalid_min_out"):
+        order_contract.isValidSignature(order_digest, signature_encoded_order)
 
 
 # the keeper passes in order data that doesn't match the canonical order (what was used to generate the UID)

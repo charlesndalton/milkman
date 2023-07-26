@@ -314,7 +314,7 @@ def get_quote(sell_token, buy_token, sell_amount):
         "sellAmountBeforeFee": str(sell_amount),
         "priceQuality": "fast",
         "signingScheme": "eip1271",
-        "verificationGasLimit": 30000
+        "verificationGasLimit": 30000,
     }
 
     r = requests.post(quote_url, json=post_body)
