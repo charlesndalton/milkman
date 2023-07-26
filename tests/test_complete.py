@@ -5,6 +5,7 @@ from brownie import ZERO_ADDRESS, reverts, Contract
 import utils
 from brownie.convert import to_bytes
 import brownie
+import milkman_py
 
 
 def test_complete_swap(
@@ -18,6 +19,7 @@ def test_complete_swap(
     chain,
     hash_helper,
     gas_checker,
+    ChainlinkExpectedOutCalculator,
 ):
     token_to_sell.approve(milkman, amount, {"from": user})
 
@@ -51,6 +53,7 @@ def test_complete_swap(
     (fee_amount, buy_amount_after_fee) = utils.get_quote(
         token_to_sell, token_to_buy, amount
     )
+    amount_to_sell = amount - fee_amount
 
     valid_to = chain.time() + 60 * 60 * 24
 
@@ -59,7 +62,7 @@ def test_complete_swap(
         token_to_buy,
         user,
         user,
-        amount - fee_amount,
+        amount_to_sell,
         buy_amount_after_fee,
         valid_to,
         fee_amount,
@@ -72,7 +75,7 @@ def test_complete_swap(
         token_to_sell.address,
         token_to_buy.address,
         user.address,
-        amount - fee_amount,
+        amount_to_sell,
         buy_amount_after_fee,
         valid_to,
         utils.APP_DATA,
@@ -87,9 +90,19 @@ def test_complete_swap(
         gpv2_order, to_bytes(utils.DOMAIN_SEPARATOR, "bytes32")
     )
 
+    # expected_out_calculator = Contract.from_abi("", price_checker.EXPECTED_OUT_CALCULATOR(), ChainlinkExpectedOutCalculator.abi)
+
+    # expected_out_data = milkman_py.chainlink_expected_out_data(
+    #         ["0xA027702dbb89fbd58938e4324ac03B58d812b0E1"], [False]
+    #     )
+
+    # response = expected_out_calculator.getExpectedOut(amount_to_sell, token_to_sell, token_to_buy, expected_out_data)
+
     is_valid_sig = order_contract.isValidSignature(
         order_digest, signature_encoded_order
     )
+
+    assert to_bytes(is_valid_sig) == to_bytes(utils.EIP_1271_MAGIC_VALUE)
 
     assert price_checker.checkPrice(
         amount - fee_amount,
@@ -100,7 +113,6 @@ def test_complete_swap(
         price_checker_data,
     )
 
-    assert to_bytes(is_valid_sig) == to_bytes(utils.EIP_1271_MAGIC_VALUE)
 
     tx = gas_checker.isValidSignatureCheck(
         order_contract, order_digest, signature_encoded_order

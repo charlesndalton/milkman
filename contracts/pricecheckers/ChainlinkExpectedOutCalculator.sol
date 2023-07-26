@@ -51,7 +51,14 @@ contract ChainlinkExpectedOutCalculator is IExpectedOutCalculator {
             (address[], bool[])
         );
 
-        return getExpectedOutFromChainlink(_priceFeeds, _reverses, _amountIn, _fromToken, _toToken); // how much Chainlink says we'd get out of this trade
+        return
+            getExpectedOutFromChainlink(
+                _priceFeeds,
+                _reverses,
+                _amountIn,
+                _fromToken,
+                _toToken
+            ); // how much Chainlink says we'd get out of this trade
     }
 
     function getExpectedOutFromChainlink(
@@ -92,14 +99,20 @@ contract ChainlinkExpectedOutCalculator is IExpectedOutCalculator {
                 );
         }
 
-        uint256 _fromTokenDecimals = uint256(IERC20MetaData(_fromToken).decimals());
+        uint256 _fromTokenDecimals = uint256(
+            IERC20MetaData(_fromToken).decimals()
+        );
         uint256 _toTokenDecimals = uint256(IERC20MetaData(_toToken).decimals());
 
         if (_fromTokenDecimals > _toTokenDecimals) {
             // if fromToken has more decimals than toToken, we need to divide
-            _expectedOutFromChainlink = _expectedOutFromChainlink.div(_fromTokenDecimals.sub(_toTokenDecimals) ** 10);
+            _expectedOutFromChainlink = _expectedOutFromChainlink.div(
+                10**_fromTokenDecimals.sub(_toTokenDecimals)
+            );
         } else if (_fromTokenDecimals < _toTokenDecimals) {
-            _expectedOutFromChainlink = _expectedOutFromChainlink.mul(_toTokenDecimals.sub(_fromTokenDecimals) ** 10);
+            _expectedOutFromChainlink = _expectedOutFromChainlink.mul(
+                10**_toTokenDecimals.sub(_fromTokenDecimals)
+            );
         }
     }
 }
