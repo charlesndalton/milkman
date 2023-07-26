@@ -87,6 +87,7 @@ def deployer(accounts):
 # UNI -> USDT, $500k & Uniswap as the price checker
 # ALCX -> TOKE, $100k, Meta price checker with Chainlink and Sushiswap
 # BAL -> WETH/BAL, $2M, SSB price checker
+# COW -> DAI, $50k, min fixed out price checker
 token_address = {
     "TOKE": "0x2e9d63788249371f1DFC918a52f8d799F4a38C94",
     "DAI": "0x6b175474e89094c44da98b954eedeac495271d0f",
@@ -104,6 +105,7 @@ token_address = {
     "BAL/WETH": "0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56",
     "YFI": "0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e",
     "USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "COW": "0xDEf1CA1fb7FBcDC777520aa7f396b4E015F497aB",
 }
 
 sell_to_buy_map = {
@@ -118,6 +120,7 @@ sell_to_buy_map = {
     "BAL": "BAL/WETH",
     "YFI": "USDC",
     "USDT": "UNI",
+    "COW": "DAI",
 }
 
 
@@ -134,6 +137,7 @@ sell_to_buy_map = {
         "BAL",
         "YFI",
         "USDT",
+        "COW",
     ],
     scope="session",
     autouse=True,
@@ -159,6 +163,7 @@ amounts = {
     "BAL": 300_000,
     "YFI": 3,
     "USDT": 2_000_000,
+    "COW": 900_000,
 }
 
 
@@ -187,6 +192,7 @@ whale_address = {
     "BAL": "0x10A19e7eE7d7F8a52822f6817de8ea18204F2e4f",
     "YFI": "0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52",
     "USDT": "0x40ec5B33f54e0E8A33A975908C5BA1c14e5BbbDf",
+    "COW": "0xca771eda0c70aa7d053ab1b25004559b918fe662",
 }
 
 
@@ -205,6 +211,7 @@ def price_checker(
     meta_price_checker,
     valid_from_price_checker_decorator,
     ssb_bal_weth_price_checker,
+    fixed_min_out_price_checker,
 ):
     symbol = token_to_sell.symbol()
 
@@ -220,6 +227,8 @@ def price_checker(
         yield valid_from_price_checker_decorator
     if symbol == "BAL" or symbol == "WETH":
         yield ssb_bal_weth_price_checker
+    if symbol == "COW":
+        yield fixed_min_out_price_checker
 
 
 @pytest.fixture
@@ -339,6 +348,17 @@ def valid_from_price_checker_decorator_data(
         ],
     )
 
+@pytest.fixture
+def fixed_min_out_price_checker(FixedMinOutPriceChecker, deployer):
+    yield deployer.deploy(
+        FixedMinOutPriceChecker
+    )
+
+def fixed_min_out_price_checker_data(min_out):
+    return encode_abi(
+        ["uint256"],
+        [min_out],
+    )
 
 # which price checker data to use for each swap
 price_checker_datas = {
@@ -390,7 +410,8 @@ price_checker_datas = {
             [int(30), int(30), int(1)],
         ),
     ),  # 6% slippage
-    "BAL": dynamic_slippage_price_checker_data(50, utils.EMPTY_BYTES),  # 0.5% slippage
+    "BAL": dynamic_slippage_price_checker_data(50, utils.EMPTY_BYTES), # 0.5% slippage
+    "COW": fixed_min_out_price_checker_data(50_000),
 }
 
 
