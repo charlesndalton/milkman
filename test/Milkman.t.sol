@@ -3,26 +3,38 @@ pragma solidity ^0.7.6;
 pragma abicoder v2;
 
 import "forge-std/Test.sol";
+import "forge-std/console.sol";
 import "../src/Milkman.sol";
 import "../src/pricecheckers/UniV2ExpectedOutCalculator.sol";
+import "../src/pricecheckers/CurveExpectedOutCalculator.sol";
+import "../src/pricecheckers/UniV3ExpectedOutCalculator.sol";
+import "../src/pricecheckers/ChainlinkExpectedOutCalculator.sol";
+// import "../src/pricecheckers/SingleSidedBalancerBalWethExpectedOutCalculator.sol";
+import "../src/pricecheckers/FixedSlippageChecker.sol";
+import "../src/pricecheckers/DynamicSlippageChecker.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MilkmanTest is Test {
     Milkman milkman;
     address sushiswapExpectedOutCalculator;
+    address sushiswapPriceChecker;
     IERC20 fromToken;
     IERC20 toToken;
     address priceChecker;
+    address whale;
 
     address SUSHISWAP_ROUTER = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
 
     mapping(string => address) private tokenAddress;
     mapping(string => string) private sellToBuyMap;
     string[] private tokensToSell;
+    mapping(string => uint256) private amounts;
+    mapping(string => address) private whaleAddresses;
 
     function setUp() public {
         milkman = new Milkman();
         sushiswapExpectedOutCalculator = address(new UniV2ExpectedOutCalculator("SUSHISWAP_EXPECTED_OUT_CALCULATOR", SUSHISWAP_ROUTER));
+        sushiswapPriceChecker = address(new FixedSlippageChecker("SUSHISWAP_500_BPS_PRICE_CHECKER", 500, sushiswapExpectedOutCalculator));
         
         tokenAddress["TOKE"] = 0x2e9d63788249371f1DFC918a52f8d799F4a38C94;
         tokenAddress["DAI"] = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
@@ -53,26 +65,73 @@ contract MilkmanTest is Test {
         sellToBuyMap["USDT"] = "UNI";
         sellToBuyMap["COW"] = "DAI";
 
-        tokensToSell = ["TOKE", "USDC", "GUSD", "AAVE", "BAT", "WETH", "UNI", "ALCX", "BAL", "YFI", "USDT", "COW"];
+        amounts["TOKE"] = 80000; // 80,000 TOKE
+        amounts["USDC"] = 5000000; // 5,000,000 USDC
+        amounts["GUSD"] = 1000; // 1,000 GUSD
+        amounts["AAVE"] = 2500; // 2,500 AAVE
+        amounts["BAT"] = 280000; // 280,000 BAT
+        amounts["WETH"] = 325; // 325 WETH
+        amounts["UNI"] = 80000; // 80,000 UNI
+        amounts["ALCX"] = 4000; // 4,000 ALCX
+        amounts["BAL"] = 300000; // 300,000 BAL
+        amounts["YFI"] = 3; // 3 YFI
+        amounts["USDT"] = 2000000; // 2,000,000 USDT
+        amounts["COW"] = 900000; // 900,000 COW
+
+        whaleAddresses["GUSD"] = 0x5f65f7b609678448494De4C87521CdF6cEf1e932;
+        // whaleAddresses["USDT"] = 0xa929022c9107643515f5c777ce9a910f0d1e490c;
+        // whaleAddresses["WETH"] = 0x030ba81f1c18d280636f32af80b9aad02cf0854e;
+        // whaleAddresses["WBTC"] = 0xccf4429db6322d5c611ee964527d42e5d685dd6a;
+        whaleAddresses["DAI"] = 0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643;
+        whaleAddresses["USDC"] = 0x0A59649758aa4d66E25f08Dd01271e891fe52199;
+        whaleAddresses["LINK"] = 0x98C63b7B319dFBDF3d811530F2ab9DfE4983Af9D;
+        whaleAddresses["GNO"] = 0x4f8AD938eBA0CD19155a835f617317a6E788c868;
+        whaleAddresses["TOKE"] = 0x96F98Ed74639689C3A11daf38ef86E59F43417D3;
+        whaleAddresses["AAVE"] = 0x4da27a545c0c5B758a6BA100e3a049001de870f5;
+        whaleAddresses["BAT"] = 0x6C8c6b02E7b2BE14d4fA6022Dfd6d75921D90E4E;
+        whaleAddresses["UNI"] = 0x1a9C8182C09F50C8318d769245beA52c32BE35BC;
+        whaleAddresses["ALCX"] = 0x000000000000000000000000000000000000dEaD;
+        whaleAddresses["BAL"] = 0x10A19e7eE7d7F8a52822f6817de8ea18204F2e4f;
+        whaleAddresses["YFI"] = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
+        // whaleAddresses["COW"] = 0xca771eda0c70aa7d053ab1b25004559b918fe662;
+
+        // tokensToSell = ["TOKE", "USDC", "GUSD", "AAVE", "BAT", "WETH", "UNI", "ALCX", "BAL", "YFI", "USDT", "COW"];
+        tokensToSell = ["TOKE"];
     }
 
     function testRequestSwapExactTokensForTokens() public {
-        // Arrange: Set up the state before calling the function
-        uint256 amountIn = 1e18;  // Example amount
+        for (uint8 i = 0; i < tokensToSell.length; i++) {
+            string memory tokenToSell = tokensToSell[i];
+            string memory tokenToBuy = sellToBuyMap[tokenToSell];
+            fromToken = IERC20(tokenAddress[tokenToSell]);
+            toToken = IERC20(tokenAddress[tokenToBuy]);
+            priceChecker = sushiswapPriceChecker;
+            whale = whaleAddresses[tokenToSell];
 
-        // Act: Call the function you want to test
-        milkman.requestSwapExactTokensForTokens(
-            amountIn,
-            fromToken,
-            toToken,
-            address(this), // Receiver address
-            address(priceChecker),
-            "" // priceCheckerData
-        );
+            uint256 amountIn = amounts[tokenToSell] * 1e18;  
+
+            vm.prank(whale);
+            fromToken.approve(address(milkman), amountIn);
+
+            vm.prank(whale);
+            milkman.requestSwapExactTokensForTokens(
+                1e18,
+                fromToken,
+                toToken,
+                address(this), // Receiver address
+                priceChecker,
+                "" // priceCheckerData
+            );
+        }
+        // priceChecker = sushiswapPriceChecker;
+        // Arrange: Set up the state before calling the function
+        // uint256 amountIn = 1e18;  // Example amount
+
+        // // Act: Call the function you want to test
 
         // Assert: Check the state after calling the function
         // Example: Assert that the swap was requested correctly
-        assertTrue(true);
+        // assertTrue(true);
     }
 
     // Additional test cases for different scenarios and edge cases

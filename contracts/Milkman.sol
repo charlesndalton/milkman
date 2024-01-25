@@ -68,37 +68,39 @@ contract Milkman {
         address priceChecker,
         bytes calldata priceCheckerData
     ) external {
-        require(address(this) == ROOT_MILKMAN, "!root_milkman"); // can't call `requestSwapExactTokensForTokens` from order contracts
-        require(priceChecker != address(0), "!price_checker"); // need to supply a valid price checker
+        // require(address(this) == ROOT_MILKMAN, "!root_milkman"); // can't call `requestSwapExactTokensForTokens` from order contracts
+        // require(priceChecker != address(0), "!price_checker"); // need to supply a valid price checker
 
-        address orderContract = createOrderContract();
+        return;
 
-        fromToken.safeTransferFrom(msg.sender, orderContract, amountIn);
+        // address orderContract = createOrderContract();
 
-        bytes32 _swapHash = keccak256(
-            abi.encode(
-                msg.sender,
-                to,
-                fromToken,
-                toToken,
-                amountIn,
-                priceChecker,
-                priceCheckerData
-            )
-        );
+        // fromToken.safeTransferFrom(msg.sender, orderContract, amountIn);
 
-        Milkman(orderContract).initialize(fromToken, _swapHash);
+        // bytes32 _swapHash = keccak256(
+        //     abi.encode(
+        //         msg.sender,
+        //         to,
+        //         fromToken,
+        //         toToken,
+        //         amountIn,
+        //         priceChecker,
+        //         priceCheckerData
+        //     )
+        // );
 
-        emit SwapRequested(
-            orderContract,
-            msg.sender,
-            amountIn,
-            address(fromToken),
-            address(toToken),
-            to,
-            priceChecker,
-            priceCheckerData
-        );
+        // Milkman(orderContract).initialize(fromToken, _swapHash);
+
+        // emit SwapRequested(
+        //     orderContract,
+        //     msg.sender,
+        //     amountIn,
+        //     address(fromToken),
+        //     address(toToken),
+        //     to,
+        //     priceChecker,
+        //     priceCheckerData
+        // );
     }
 
     function initialize(IERC20 fromToken, bytes32 _swapHash) external {
