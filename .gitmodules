@@ -4,3 +4,6 @@
 [submodule "lib/contracts"]
 	path = lib/contracts
 	url = https://github.com/cowprotocol/contracts
+[submodule "lib/balancer-v2-monorepo"]
+	path = lib/balancer-v2-monorepo
+	url = https://github.com/balancer/balancer-v2-monorepo
