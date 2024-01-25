@@ -4,23 +4,17 @@ pragma abicoder v2;
 
 import "forge-std/Test.sol";
 import "../src/Milkman.sol";
+import "../src/pricecheckers/UniV2ExpectedOutCalculator.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-// contract MockERC20 is IERC20 {
-//     // Mock ERC20 implementation (or use a library like OpenZeppelin's mock contracts)
-//     // Implement necessary functions like mint, transfer, etc.
-// }
-
-// contract PriceCheckerMock {
-//     // Mock implementation of IPriceChecker
-//     // Implement necessary functions to simulate price checking
-// }
 
 contract MilkmanTest is Test {
     Milkman milkman;
+    address sushiswapExpectedOutCalculator;
     IERC20 fromToken;
     IERC20 toToken;
     address priceChecker;
+
+    address SUSHISWAP_ROUTER = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
 
     mapping(string => address) private tokenAddress;
     mapping(string => string) private sellToBuyMap;
@@ -28,6 +22,7 @@ contract MilkmanTest is Test {
 
     function setUp() public {
         milkman = new Milkman();
+        sushiswapExpectedOutCalculator = address(new UniV2ExpectedOutCalculator("SUSHISWAP_EXPECTED_OUT_CALCULATOR", SUSHISWAP_ROUTER));
         
         tokenAddress["TOKE"] = 0x2e9d63788249371f1DFC918a52f8d799F4a38C94;
         tokenAddress["DAI"] = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
