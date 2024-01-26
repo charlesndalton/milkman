@@ -20,8 +20,11 @@ contract MilkmanTest is Test {
     address sushiswapPriceChecker;
     IERC20 fromToken;
     IERC20 toToken;
+    uint256 amountIn;
     address priceChecker;
     address whale;
+
+    bytes32 SWAP_REQUESTED_EVENT = keccak256("SwapRequested(address,address,uint256,address,address,address,address,bytes)");
 
     address SUSHISWAP_ROUTER = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
 
@@ -105,6 +108,7 @@ contract MilkmanTest is Test {
             string memory tokenToBuy = sellToBuyMap[tokenToSell];
             fromToken = IERC20(tokenAddress[tokenToSell]);
             toToken = IERC20(tokenAddress[tokenToBuy]);
+            amountIn = amounts[tokenToSell] * 1e18;
             priceChecker = sushiswapPriceChecker;
             whale = whaleAddresses[tokenToSell];
 
@@ -113,15 +117,34 @@ contract MilkmanTest is Test {
             vm.prank(whale);
             fromToken.approve(address(milkman), amountIn);
 
+            vm.recordLogs();
+
             vm.prank(whale);
             milkman.requestSwapExactTokensForTokens(
-                1e18,
+                amountIn,
                 fromToken,
                 toToken,
                 address(this), // Receiver address
                 priceChecker,
                 "" // priceCheckerData
             );
+
+            Vm.Log[] memory entries = vm.getRecordedLogs();
+
+            assertEq(entries[3].topics[0], SWAP_REQUESTED_EVENT);
+
+            (address orderContract,,,,,,,) = (abi.decode(entries[3].data, (address,address,uint256,address,address,address,address,bytes)));
+
+            assertEq(fromToken.balanceOf(orderContract), amountIn);
+
+            // console.log(orderContract);
+            // console.lo(fromToken.balanceOf(orderContract));
+
+            // console.log("log", entries[3].topics.length);
+
+            // assertEq(entries.length, 1);
+
+            // vm.expectEmit(true, true, true, true);
         }
         // priceChecker = sushiswapPriceChecker;
         // Arrange: Set up the state before calling the function
