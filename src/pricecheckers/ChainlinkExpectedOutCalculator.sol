@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 pragma solidity ^0.7.6;
+
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -40,25 +41,15 @@ contract ChainlinkExpectedOutCalculator is IExpectedOutCalculator {
      * BOND -> YFI: [[bond-eth.data.eth, yfi-eth.data.eth], [false, true]]
      * BOND -> FXS (FXS has no fxs-eth feed): [[bond-eth.data.eth, eth-usd.data.eth, fxs-usd.data.eth], [false, false, true]]
      */
-    function getExpectedOut(
-        uint256 _amountIn,
-        address _fromToken,
-        address _toToken,
-        bytes calldata _data
-    ) external view override returns (uint256) {
-        (address[] memory _priceFeeds, bool[] memory _reverses) = abi.decode(
-            _data,
-            (address[], bool[])
-        );
+    function getExpectedOut(uint256 _amountIn, address _fromToken, address _toToken, bytes calldata _data)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        (address[] memory _priceFeeds, bool[] memory _reverses) = abi.decode(_data, (address[], bool[]));
 
-        return
-            getExpectedOutFromChainlink(
-                _priceFeeds,
-                _reverses,
-                _amountIn,
-                _fromToken,
-                _toToken
-            ); // how much Chainlink says we'd get out of this trade
+        return getExpectedOutFromChainlink(_priceFeeds, _reverses, _amountIn, _fromToken, _toToken); // how much Chainlink says we'd get out of this trade
     }
 
     function getExpectedOutFromChainlink(
@@ -67,7 +58,11 @@ contract ChainlinkExpectedOutCalculator is IExpectedOutCalculator {
         uint256 _amountIn,
         address _fromToken,
         address _toToken
-    ) internal view returns (uint256 _expectedOutFromChainlink) {
+    )
+        internal
+        view
+        returns (uint256 _expectedOutFromChainlink)
+    {
         uint256 _priceFeedsLen = _priceFeeds.length;
 
         require(_priceFeedsLen > 0); // dev: need to pass at least one price feed
@@ -81,38 +76,27 @@ contract ChainlinkExpectedOutCalculator is IExpectedOutCalculator {
                 require(_latestAnswer > 0); // dev: latest answer from the price feed needs to be positive
             }
 
-            uint256 _scaleAnswerBy = 10**uint256(_priceFeed.decimals());
+            uint256 _scaleAnswerBy = 10 ** uint256(_priceFeed.decimals());
 
             // If it's first iteration, use amountIn to calculate. Else, use the result from the previous iteration.
-            uint256 _amountIntoThisIteration = _i == 0
-                ? _amountIn
-                : _expectedOutFromChainlink;
+            uint256 _amountIntoThisIteration = _i == 0 ? _amountIn : _expectedOutFromChainlink;
 
             // Without a reverse, we multiply amount * price
             // With a reverse, we divide amount / price
-            _expectedOutFromChainlink = _reverses[_i]
-                ? _amountIntoThisIteration.mul(_scaleAnswerBy).div(
-                    uint256(_latestAnswer)
-                )
-                : _amountIntoThisIteration.mul(uint256(_latestAnswer)).div(
-                    _scaleAnswerBy
-                );
+            _expectedOutFromChainlink =
+                _reverses[_i]
+                ? _amountIntoThisIteration.mul(_scaleAnswerBy).div(uint256(_latestAnswer))
+                : _amountIntoThisIteration.mul(uint256(_latestAnswer)).div(_scaleAnswerBy);
         }
 
-        uint256 _fromTokenDecimals = uint256(
-            IERC20MetaData(_fromToken).decimals()
-        );
+        uint256 _fromTokenDecimals = uint256(IERC20MetaData(_fromToken).decimals());
         uint256 _toTokenDecimals = uint256(IERC20MetaData(_toToken).decimals());
 
         if (_fromTokenDecimals > _toTokenDecimals) {
             // if fromToken has more decimals than toToken, we need to divide
-            _expectedOutFromChainlink = _expectedOutFromChainlink.div(
-                10**_fromTokenDecimals.sub(_toTokenDecimals)
-            );
+            _expectedOutFromChainlink = _expectedOutFromChainlink.div(10 ** _fromTokenDecimals.sub(_toTokenDecimals));
         } else if (_fromTokenDecimals < _toTokenDecimals) {
-            _expectedOutFromChainlink = _expectedOutFromChainlink.mul(
-                10**_toTokenDecimals.sub(_fromTokenDecimals)
-            );
+            _expectedOutFromChainlink = _expectedOutFromChainlink.mul(10 ** _toTokenDecimals.sub(_fromTokenDecimals));
         }
     }
 }

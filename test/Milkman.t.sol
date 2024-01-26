@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 pragma solidity ^0.7.6;
+
 pragma abicoder v2;
 
 import "forge-std/Test.sol";
@@ -27,7 +28,8 @@ contract MilkmanTest is Test {
     address priceChecker;
     address whale;
 
-    bytes32 SWAP_REQUESTED_EVENT = keccak256("SwapRequested(address,address,uint256,address,address,address,address,bytes)");
+    bytes32 SWAP_REQUESTED_EVENT =
+        keccak256("SwapRequested(address,address,uint256,address,address,address,address,bytes)");
 
     address SUSHISWAP_ROUTER = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
 
@@ -39,9 +41,11 @@ contract MilkmanTest is Test {
 
     function setUp() public {
         milkman = new Milkman();
-        sushiswapExpectedOutCalculator = address(new UniV2ExpectedOutCalculator("SUSHISWAP_EXPECTED_OUT_CALCULATOR", SUSHISWAP_ROUTER));
-        sushiswapPriceChecker = address(new FixedSlippageChecker("SUSHISWAP_500_BPS_PRICE_CHECKER", 500, sushiswapExpectedOutCalculator));
-        
+        sushiswapExpectedOutCalculator =
+            address(new UniV2ExpectedOutCalculator("SUSHISWAP_EXPECTED_OUT_CALCULATOR", SUSHISWAP_ROUTER));
+        sushiswapPriceChecker =
+            address(new FixedSlippageChecker("SUSHISWAP_500_BPS_PRICE_CHECKER", 500, sushiswapExpectedOutCalculator));
+
         tokenAddress["TOKE"] = 0x2e9d63788249371f1DFC918a52f8d799F4a38C94;
         tokenAddress["DAI"] = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
         tokenAddress["USDC"] = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -115,7 +119,7 @@ contract MilkmanTest is Test {
             priceChecker = sushiswapPriceChecker;
             whale = whaleAddresses[tokenToSell];
 
-            uint256 amountIn = amounts[tokenToSell] * 1e18;  
+            uint256 amountIn = amounts[tokenToSell] * 1e18;
 
             vm.prank(whale);
             fromToken.approve(address(milkman), amountIn);
@@ -136,50 +140,35 @@ contract MilkmanTest is Test {
 
             assertEq(entries[3].topics[0], SWAP_REQUESTED_EVENT);
 
-            (address orderContract,,,,,,,) = (abi.decode(entries[3].data, (address,address,uint256,address,address,address,address,bytes)));
+            (address orderContract,,,,,,,) =
+                (abi.decode(entries[3].data, (address, address, uint256, address, address, address, address, bytes)));
 
             assertEq(fromToken.balanceOf(orderContract), amountIn);
 
-            bytes32 expectedSwapHash = keccak256(
-                abi.encode(
-                    whale,
-                    address(this),
-                    fromToken,
-                    toToken,
-                    amountIn,
-                    priceChecker,
-                    bytes("")
-                )
-            );
+            bytes32 expectedSwapHash =
+                keccak256(abi.encode(whale, address(this), fromToken, toToken, amountIn, priceChecker, bytes("")));
             assertEq(Milkman(orderContract).swapHash(), expectedSwapHash);
 
             string[] memory headers = new string[](1);
             headers[0] = "Content-Type: application/json";
 
-            // (uint256 status, bytes memory data) = "https://httpbin.org/post".post(headers, 
-            //     string(abi.encodePacked('{"foo": ', '"bar"}')));
-
-            //   post_body = {
-            //     "sellToken": sell_token.address,
-            //     "buyToken": buy_token.address,
-            //     "from": "0x5F4bd1b3667127Bf44beBBa9e5d736B65A1677E5",
-            //     "kind": "sell",
-            //     "sellAmountBeforeFee": str(sell_amount),
-            //     "priceQuality": "fast",
-            //     "signingScheme": "eip1271",
-            //     "verificationGasLimit": 30000,
-            // }
-
-            (uint256 status, bytes memory data) = 
-                "https://api.cow.fi/mainnet/api/v1/quote".post(headers, 
-                string(abi.encodePacked(
-                    '{"sellToken": "', vm.toString(address(fromToken)),
-                    '", "buyToken": "', vm.toString(address(toToken)), 
-                    '", "from": "', vm.toString(whale),
-                    '", "kind": "sell", "sellAmountBeforeFee": "', vm.toString(amountIn),
-                    '", "priceQuality": "fast", "signingScheme": "eip1271", "verificationGasLimit": 30000',
-                    '}'
-                )));
+            (uint256 status, bytes memory data) = "https://api.cow.fi/mainnet/api/v1/quote".post(
+                headers,
+                string(
+                    abi.encodePacked(
+                        '{"sellToken": "',
+                        vm.toString(address(fromToken)),
+                        '", "buyToken": "',
+                        vm.toString(address(toToken)),
+                        '", "from": "',
+                        vm.toString(whale),
+                        '", "kind": "sell", "sellAmountBeforeFee": "',
+                        vm.toString(amountIn),
+                        '", "priceQuality": "fast", "signingScheme": "eip1271", "verificationGasLimit": 30000',
+                        "}"
+                    )
+                )
+            );
 
             console.log("data", string(data));
 
@@ -188,7 +177,6 @@ contract MilkmanTest is Test {
             // (uint256 status, bytes memory data) = "https://httpbin.org/get".get();
             // console.log("status", status);
             // console.log("body", string(data));
-            
 
             // console.log(orderContract);
             // console.lo(fromToken.balanceOf(orderContract));

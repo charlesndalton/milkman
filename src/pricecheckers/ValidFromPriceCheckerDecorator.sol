@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 pragma solidity ^0.7.6;
+
 pragma abicoder v2;
 
 import {IPriceChecker} from "../../interfaces/IPriceChecker.sol";
@@ -14,22 +15,18 @@ contract ValidFromPriceCheckerDecorator is IPriceChecker {
         uint256 _feeAmount,
         uint256 _minOut,
         bytes calldata _data
-    ) external view override returns (bool) {
-        (uint256 _validFrom, address _priceChecker, bytes memory _data) = abi
-            .decode(_data, (uint256, address, bytes));
+    )
+        external
+        view
+        override
+        returns (bool)
+    {
+        (uint256 _validFrom, address _priceChecker, bytes memory _data) = abi.decode(_data, (uint256, address, bytes));
 
         if (_validFrom > block.timestamp) {
             return false;
         }
 
-        return
-            IPriceChecker(_priceChecker).checkPrice(
-                _amountIn,
-                _fromToken,
-                _toToken,
-                _feeAmount,
-                _minOut,
-                _data
-            );
+        return IPriceChecker(_priceChecker).checkPrice(_amountIn, _fromToken, _toToken, _feeAmount, _minOut, _data);
     }
 }

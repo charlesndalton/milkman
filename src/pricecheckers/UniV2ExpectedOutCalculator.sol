@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 pragma solidity ^0.7.6;
+
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -21,12 +22,12 @@ contract UniV2ExpectedOutCalculator is IExpectedOutCalculator {
         UNIV2_ROUTER = _univ2Router;
     }
 
-    function getExpectedOut(
-        uint256 _amountIn,
-        address _fromToken,
-        address _toToken,
-        bytes calldata
-    ) external view override returns (uint256) {
+    function getExpectedOut(uint256 _amountIn, address _fromToken, address _toToken, bytes calldata)
+        external
+        view
+        override
+        returns (uint256)
+    {
         uint256[] memory amounts;
 
         if (_fromToken == WETH || _toToken == WETH) {

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 pragma solidity ^0.7.6;
+
 pragma abicoder v2;
 
 import {IPriceChecker} from "../../interfaces/IPriceChecker.sol";
@@ -13,7 +14,12 @@ contract FixedMinOutPriceChecker is IPriceChecker {
         uint256 _feeAmount,
         uint256 _out,
         bytes calldata _data
-    ) external view override returns (bool) {
+    )
+        external
+        view
+        override
+        returns (bool)
+    {
         uint256 minOut = abi.decode(_data, (uint256));
         return minOut <= _out;
     }
