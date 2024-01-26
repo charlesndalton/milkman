@@ -137,6 +137,19 @@ contract MilkmanTest is Test {
 
             assertEq(fromToken.balanceOf(orderContract), amountIn);
 
+            bytes32 expectedSwapHash = keccak256(
+                abi.encode(
+                    whale,
+                    address(this),
+                    fromToken,
+                    toToken,
+                    amountIn,
+                    priceChecker,
+                    bytes("")
+                )
+            );
+            assertEq(Milkman(orderContract).swapHash(), expectedSwapHash);
+
             // console.log(orderContract);
             // console.lo(fromToken.balanceOf(orderContract));
 
