@@ -16,6 +16,8 @@ import "../src/pricecheckers/DynamicSlippageChecker.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MilkmanTest is Test {
+    using Surl for *;
+
     Milkman milkman;
     address sushiswapExpectedOutCalculator;
     address sushiswapPriceChecker;
@@ -150,6 +152,43 @@ contract MilkmanTest is Test {
                 )
             );
             assertEq(Milkman(orderContract).swapHash(), expectedSwapHash);
+
+            string[] memory headers = new string[](1);
+            headers[0] = "Content-Type: application/json";
+
+            // (uint256 status, bytes memory data) = "https://httpbin.org/post".post(headers, 
+            //     string(abi.encodePacked('{"foo": ', '"bar"}')));
+
+            //   post_body = {
+            //     "sellToken": sell_token.address,
+            //     "buyToken": buy_token.address,
+            //     "from": "0x5F4bd1b3667127Bf44beBBa9e5d736B65A1677E5",
+            //     "kind": "sell",
+            //     "sellAmountBeforeFee": str(sell_amount),
+            //     "priceQuality": "fast",
+            //     "signingScheme": "eip1271",
+            //     "verificationGasLimit": 30000,
+            // }
+
+            (uint256 status, bytes memory data) = 
+                "https://api.cow.fi/mainnet/api/v1/quote".post(headers, 
+                string(abi.encodePacked(
+                    '{"sellToken": "', vm.toString(address(fromToken)),
+                    '", "buyToken": "', vm.toString(address(toToken)), 
+                    '", "from": "', vm.toString(whale),
+                    '", "kind": "sell", "sellAmountBeforeFee": "', vm.toString(amountIn),
+                    '", "priceQuality": "fast", "signingScheme": "eip1271", "verificationGasLimit": 30000',
+                    '}'
+                )));
+
+            console.log("data", string(data));
+
+            assertEq(status, 200);
+
+            // (uint256 status, bytes memory data) = "https://httpbin.org/get".get();
+            // console.log("status", status);
+            // console.log("body", string(data));
+            
 
             // console.log(orderContract);
             // console.lo(fromToken.balanceOf(orderContract));
