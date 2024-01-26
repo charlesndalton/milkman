@@ -10,3 +10,6 @@
 [submodule "lib/forge-std"]
 	path = lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "lib/surl-0.7"]
+	path = lib/surl-0.7
+	url = https://github.com/charlesndalton/surl-0.7
