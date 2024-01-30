@@ -60,6 +60,7 @@ contract MilkmanTest is Test {
     string[] private tokensToSell;
     mapping(string => uint256) private amounts;
     mapping(string => address) private whaleAddresses;
+    mapping(string => address) private priceCheckers;
 
     function parseUint(string memory json, string memory key) internal pure returns (uint256) {
         bytes memory valueBytes = vm.parseJson(json, key);
@@ -111,10 +112,6 @@ contract MilkmanTest is Test {
             "SSB_BAL_WETH_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
             ssbBalWethExpectedOutCalculator
         ));
-        // sushiswapExpectedOutCalculator =
-        //     address(new UniV2ExpectedOutCalculator("SUSHISWAP_EXPECTED_OUT_CALCULATOR", SUSHISWAP_ROUTER));
-        // sushiswapPriceChecker =
-        //     address(new FixedSlippageChecker("SUSHISWAP_500_BPS_PRICE_CHECKER", 500, sushiswapExpectedOutCalculator));
 
         tokenAddress["TOKE"] = 0x2e9d63788249371f1DFC918a52f8d799F4a38C94;
         tokenAddress["DAI"] = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
@@ -175,6 +172,19 @@ contract MilkmanTest is Test {
         whaleAddresses["YFI"] = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
         // whaleAddresses["COW"] = 0xca771eda0c70aa7d053ab1b25004559b918fe662;
 
+        priceCheckers["TOKE"] = sushiswapPriceChecker;
+        priceCheckers["USDC"] = curvePriceChecker;
+        priceCheckers["GUSD"] = curvePriceChecker;
+        priceCheckers["AAVE"] = chainlinkPriceChecker;
+        priceCheckers["BAT"] = chainlinkPriceChecker;
+        priceCheckers["YFI"] = chainlinkPriceChecker;
+        priceCheckers["USDT"] = chainlinkPriceChecker;
+        priceCheckers["UNI"] = univ3PriceChecker;
+        priceCheckers["BAL"] = ssbBalWethPriceChecker;
+        priceCheckers["WETH"] = ssbBalWethPriceChecker;
+        // priceCheckers["COW"] = fixedMinOut;
+        // priceCheckers["ALCX"] = validFrom;
+
         // tokensToSell = ["TOKE", "USDC", "GUSD", "AAVE", "BAT", "WETH", "UNI", "ALCX", "BAL", "YFI", "USDT", "COW"];
         tokensToSell = ["TOKE"];
     }
@@ -189,8 +199,8 @@ contract MilkmanTest is Test {
                 amountIn = amounts[tokenToSell] * 1e18;
                 whale = whaleAddresses[tokenToSell];
                 amountIn = amounts[tokenToSell] * 1e18;
+                priceChecker = priceCheckers[tokenToSell];
             }
-            priceChecker = sushiswapPriceChecker;
 
             vm.prank(whale);
             fromToken.approve(address(milkman), amountIn);
