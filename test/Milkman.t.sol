@@ -22,6 +22,7 @@ import {IERC20 as CoWIERC20} from "@cow-protocol/contracts/interfaces/IERC20.sol
 contract MilkmanTest is Test {
     using Surl for *;
     using stdJson for string;
+    using GPv2Order for GPv2Order.Data;
 
     Milkman milkman;
     address sushiswapExpectedOutCalculator;
@@ -33,8 +34,9 @@ contract MilkmanTest is Test {
     address whale;
 
     bytes32 public constant APP_DATA = 0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24;
-    bytes32 public constant KIND_SELL = 0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775;
-    bytes32 public constant ERC20_BALANCE = 0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9;
+    bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
+    bytes4 internal constant NON_MAGIC_VALUE = 0xffffffff;
+
 
     bytes32 public constant SWAP_REQUESTED_EVENT =
         keccak256("SwapRequested(address,address,uint256,address,address,address,address,bytes)");
@@ -254,6 +256,12 @@ contract MilkmanTest is Test {
                 priceChecker,
                 bytes("")
             );
+
+            bytes32 orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+
+            bytes4 isValidSignature = Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+
+            assertEq(isValidSignature, MAGIC_VALUE);
 
             // bytes memory signatureEncodedOrder = encodeOrderEIP1271(
             //     amountToSell,
