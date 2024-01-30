@@ -15,7 +15,9 @@ import "../src/pricecheckers/ChainlinkExpectedOutCalculator.sol";
 // import "../src/pricecheckers/SingleSidedBalancerBalWethExpectedOutCalculator.sol";
 import "../src/pricecheckers/FixedSlippageChecker.sol";
 import "../src/pricecheckers/DynamicSlippageChecker.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {GPv2Order} from "@cow-protocol/contracts/libraries/GPv2Order.sol";
+import {IERC20 as CoWIERC20} from "@cow-protocol/contracts/interfaces/IERC20.sol";
+// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MilkmanTest is Test {
     using Surl for *;
@@ -30,7 +32,11 @@ contract MilkmanTest is Test {
     address priceChecker;
     address whale;
 
-    bytes32 SWAP_REQUESTED_EVENT =
+    bytes32 public constant APP_DATA = 0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24;
+    bytes32 public constant KIND_SELL = 0xf3b277728b3fee749481eb3e0b3b48980dbbab78658fc419025cb16eee346775;
+    bytes32 public constant ERC20_BALANCE = 0x5a28e9363bb942b639270062aa6bb295f434bcdfc42c97267bf003f272060dc9;
+
+    bytes32 public constant SWAP_REQUESTED_EVENT =
         keccak256("SwapRequested(address,address,uint256,address,address,address,address,bytes)");
 
     address SUSHISWAP_ROUTER = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
@@ -40,6 +46,42 @@ contract MilkmanTest is Test {
     string[] private tokensToSell;
     mapping(string => uint256) private amounts;
     mapping(string => address) private whaleAddresses;
+
+    function parseUint(string memory json, string memory key) internal returns (uint256) {
+        bytes memory valueBytes = vm.parseJson(json, key);
+        string memory valueString = abi.decode(valueBytes, (string));
+        return vm.parseUint(valueString);
+    }
+
+    function encodeOrderEIP1271(
+        uint256 amountToSell,
+        uint256 buyAmount,
+        uint32 validTo,
+        uint256 feeAmount
+    )
+        internal
+        returns (bytes memory)
+    {
+        // bytes memory signatureEncodedOrder = abi.encode(
+        //     fromToken,
+        //     toToken,
+        //     whale,
+        //     amountToSell,
+        //     buyAmount,
+        //     validTo,
+        //     APP_DATA,
+        //     feeAmount,
+        //     KIND_SELL,
+        //     false,
+        //     ERC20_BALANCE,
+        //     ERC20_BALANCE,
+        //     whale,
+        //     // priceChecker,
+        //     bytes("")
+        // );
+
+        return bytes("");
+    }
 
     function setUp() public {
         milkman = new Milkman();
@@ -113,15 +155,16 @@ contract MilkmanTest is Test {
 
     function testRequestSwapExactTokensForTokens() public {
         for (uint8 i = 0; i < tokensToSell.length; i++) {
-            string memory tokenToSell = tokensToSell[i];
-            string memory tokenToBuy = sellToBuyMap[tokenToSell];
-            fromToken = IERC20(tokenAddress[tokenToSell]);
-            toToken = IERC20(tokenAddress[tokenToBuy]);
-            amountIn = amounts[tokenToSell] * 1e18;
+            {
+                string memory tokenToSell = tokensToSell[i];
+                string memory tokenToBuy = sellToBuyMap[tokenToSell];
+                fromToken = IERC20(tokenAddress[tokenToSell]);
+                toToken = IERC20(tokenAddress[tokenToBuy]);
+                amountIn = amounts[tokenToSell] * 1e18;
+                whale = whaleAddresses[tokenToSell];
+                uint256 amountIn = amounts[tokenToSell] * 1e18;
+            }
             priceChecker = sushiswapPriceChecker;
-            whale = whaleAddresses[tokenToSell];
-
-            uint256 amountIn = amounts[tokenToSell] * 1e18;
 
             vm.prank(whale);
             fromToken.approve(address(milkman), amountIn);
@@ -147,51 +190,95 @@ contract MilkmanTest is Test {
 
             assertEq(fromToken.balanceOf(orderContract), amountIn);
 
-            bytes32 expectedSwapHash =
-                keccak256(abi.encode(whale, address(this), fromToken, toToken, amountIn, priceChecker, bytes("")));
-            assertEq(Milkman(orderContract).swapHash(), expectedSwapHash);
+            {
+                bytes32 expectedSwapHash =
+                    keccak256(abi.encode(whale, address(this), fromToken, toToken, amountIn, priceChecker, bytes("")));
+                assertEq(Milkman(orderContract).swapHash(), expectedSwapHash);
+            }
 
-            string[] memory headers = new string[](1);
-            headers[0] = "Content-Type: application/json";
+            uint256 buyAmount = 0;
+            uint256 feeAmount = 0;
+            {
+                string[] memory headers = new string[](1);
+                headers[0] = "Content-Type: application/json";
 
-            (uint256 status, bytes memory data) = "https://api.cow.fi/mainnet/api/v1/quote".post(
-                headers,
-                string(
-                    abi.encodePacked(
-                        '{"sellToken": "',
-                        vm.toString(address(fromToken)),
-                        '", "buyToken": "',
-                        vm.toString(address(toToken)),
-                        '", "from": "',
-                        vm.toString(whale),
-                        '", "kind": "sell", "sellAmountBeforeFee": "',
-                        vm.toString(amountIn),
-                        '", "priceQuality": "fast", "signingScheme": "eip1271", "verificationGasLimit": 30000',
-                        "}"
+                (uint256 status, bytes memory data) = "https://api.cow.fi/mainnet/api/v1/quote".post(
+                    headers,
+                    string(
+                        abi.encodePacked(
+                            '{"sellToken": "',
+                            vm.toString(address(fromToken)),
+                            '", "buyToken": "',
+                            vm.toString(address(toToken)),
+                            '", "from": "',
+                            vm.toString(whale),
+                            '", "kind": "sell", "sellAmountBeforeFee": "',
+                            vm.toString(amountIn),
+                            '", "priceQuality": "fast", "signingScheme": "eip1271", "verificationGasLimit": 30000',
+                            "}"
+                        )
                     )
-                )
+                );
+
+                assertEq(status, 200);
+
+                string memory json = string(data);
+
+                buyAmount = parseUint(json, ".quote.buyAmount");
+                feeAmount = parseUint(json, ".quote.feeAmount");
+            }
+
+            uint256 amountToSell = amountIn - feeAmount;
+            assertLt(amountToSell, amountIn);
+
+            uint32 validTo = uint32(block.timestamp) + 60 * 60 * 24;
+
+            GPv2Order.Data memory order = GPv2Order.Data({
+                sellToken: CoWIERC20(address(fromToken)),
+                buyToken: CoWIERC20(address(toToken)),
+                receiver: whale,
+                sellAmount: amountToSell,
+                feeAmount: feeAmount,
+                buyAmount: buyAmount,
+                partiallyFillable: false,
+                kind: GPv2Order.KIND_SELL,
+                sellTokenBalance: GPv2Order.BALANCE_ERC20,
+                buyTokenBalance: GPv2Order.BALANCE_ERC20,
+                validTo: validTo,
+                appData: APP_DATA
+            });
+
+            bytes memory signatureEncodedOrder = abi.encode(
+                order,
+                whale,
+                priceChecker,
+                bytes("")
             );
 
-            console.log("data", string(data));
+            // bytes memory signatureEncodedOrder = encodeOrderEIP1271(
+            //     amountToSell,
+            //     buyAmount,
+            //     uint32(validTo),
+            //     feeAmount
+            // );
 
-            assertEq(status, 200);
-
-            string memory json = string(data);
-
-            string memory json2 = '{"foo": "hello", "bar": 97}';
-            bytes memory bar = vm.parseJson(json2, ".foo");
-            (string memory d) = abi.decode(bar, (string));
-            console.log(d);
-
-            bytes memory buyAmountBytes = vm.parseJson(json, ".quote.buyAmount");
-            string memory buyAmountString = abi.decode(buyAmountBytes, (string));
-            uint256 buyAmount = vm.parseUint(buyAmountString);
-            console.log("buyAmount", buyAmount);
-
-            bytes memory feeAmountBytes = vm.parseJson(json, ".quote.feeAmount");
-            string memory feeAmountString = abi.decode(feeAmountBytes, (string));
-            uint256 feeAmount = vm.parseUint(feeAmountString);
-            console.log("feeAmount", feeAmount);
+            // bytes memory signatureEncodedOrder = abi.encode(
+            //     address(fromToken),
+            //     address(toToken),
+            //     whale,
+            //     amountToSell,
+            //     buyAmount,
+            //     validTo,
+            //     APP_DATA,
+            //     feeAmount,
+            //     KIND_SELL,
+            //     false,
+            //     ERC20_BALANCE,
+            //     ERC20_BALANCE,
+            //     whale,
+            //     priceChecker,
+            //     bytes("")
+            // );
 
             // bytes memory feeBytes = vm.parseJson(json, ".quote.fee");
             // uint256 fee = abi.decode(feeBytes, (uint256));
@@ -200,8 +287,6 @@ contract MilkmanTest is Test {
             // bytes memory sellTokenBytes = vm.parseJson(json, ".quote.sellToken");
             // address sellToken = abi.decode(sellTokenBytes, (address));
             // console.log("sellToken", sellToken);
-
-
 
             // bytes memory b = vm.parseJson(json, ".quote.sellToken");
             // console.log(string(b));
