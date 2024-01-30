@@ -49,40 +49,10 @@ contract MilkmanTest is Test {
     mapping(string => uint256) private amounts;
     mapping(string => address) private whaleAddresses;
 
-    function parseUint(string memory json, string memory key) internal returns (uint256) {
+    function parseUint(string memory json, string memory key) internal pure returns (uint256) {
         bytes memory valueBytes = vm.parseJson(json, key);
         string memory valueString = abi.decode(valueBytes, (string));
         return vm.parseUint(valueString);
-    }
-
-    function encodeOrderEIP1271(
-        uint256 amountToSell,
-        uint256 buyAmount,
-        uint32 validTo,
-        uint256 feeAmount
-    )
-        internal
-        returns (bytes memory)
-    {
-        // bytes memory signatureEncodedOrder = abi.encode(
-        //     fromToken,
-        //     toToken,
-        //     whale,
-        //     amountToSell,
-        //     buyAmount,
-        //     validTo,
-        //     APP_DATA,
-        //     feeAmount,
-        //     KIND_SELL,
-        //     false,
-        //     ERC20_BALANCE,
-        //     ERC20_BALANCE,
-        //     whale,
-        //     // priceChecker,
-        //     bytes("")
-        // );
-
-        return bytes("");
     }
 
     function setUp() public {
@@ -164,7 +134,7 @@ contract MilkmanTest is Test {
                 toToken = IERC20(tokenAddress[tokenToBuy]);
                 amountIn = amounts[tokenToSell] * 1e18;
                 whale = whaleAddresses[tokenToSell];
-                uint256 amountIn = amounts[tokenToSell] * 1e18;
+                amountIn = amounts[tokenToSell] * 1e18;
             }
             priceChecker = sushiswapPriceChecker;
 
