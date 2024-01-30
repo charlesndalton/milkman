@@ -5,6 +5,7 @@ pragma abicoder v2;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
+import {stdJson} from "forge-std/StdJson.sol";
 import {Surl} from "surl/Surl.sol";
 import "../src/Milkman.sol";
 import "../src/pricecheckers/UniV2ExpectedOutCalculator.sol";
@@ -18,6 +19,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MilkmanTest is Test {
     using Surl for *;
+    using stdJson for string;
 
     Milkman milkman;
     address sushiswapExpectedOutCalculator;
@@ -173,6 +175,38 @@ contract MilkmanTest is Test {
             console.log("data", string(data));
 
             assertEq(status, 200);
+
+            string memory json = string(data);
+
+            string memory json2 = '{"foo": "hello", "bar": 97}';
+            bytes memory bar = vm.parseJson(json2, ".foo");
+            (string memory d) = abi.decode(bar, (string));
+            console.log(d);
+
+            bytes memory buyAmountBytes = vm.parseJson(json, ".quote.buyAmount");
+            string memory buyAmountString = abi.decode(buyAmountBytes, (string));
+            uint256 buyAmount = vm.parseUint(buyAmountString);
+            console.log("buyAmount", buyAmount);
+
+            bytes memory feeAmountBytes = vm.parseJson(json, ".quote.feeAmount");
+            string memory feeAmountString = abi.decode(feeAmountBytes, (string));
+            uint256 feeAmount = vm.parseUint(feeAmountString);
+            console.log("feeAmount", feeAmount);
+
+            // bytes memory feeBytes = vm.parseJson(json, ".quote.fee");
+            // uint256 fee = abi.decode(feeBytes, (uint256));
+            // console.log("fee", fee);
+
+            // bytes memory sellTokenBytes = vm.parseJson(json, ".quote.sellToken");
+            // address sellToken = abi.decode(sellTokenBytes, (address));
+            // console.log("sellToken", sellToken);
+
+
+
+            // bytes memory b = vm.parseJson(json, ".quote.sellToken");
+            // console.log(string(b));
+            // address b = vm.parseJsonAddress(json, ".quote.sellToken");
+            // console.log(b);
 
             // (uint256 status, bytes memory data) = "https://httpbin.org/get".get();
             // console.log("status", status);
