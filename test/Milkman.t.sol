@@ -262,7 +262,7 @@ contract MilkmanTest is Test {
             GPv2Order.Data memory order = GPv2Order.Data({
                 sellToken: CoWIERC20(address(fromToken)),
                 buyToken: CoWIERC20(address(toToken)),
-                receiver: whale,
+                receiver: address(this),
                 sellAmount: amountToSell,
                 feeAmount: feeAmount,
                 buyAmount: buyAmount,
