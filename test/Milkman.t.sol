@@ -20,6 +20,9 @@ import "../src/pricecheckers/DynamicSlippageChecker.sol";
 import {GPv2Order} from "@cow-protocol/contracts/libraries/GPv2Order.sol";
 import {IERC20 as CoWIERC20} from "@cow-protocol/contracts/interfaces/IERC20.sol";
 // import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+interface IERC20Metadata {
+    function decimals() external view returns (uint8);
+}
 
 contract MilkmanTest is Test {
     using Surl for *;
@@ -210,9 +213,9 @@ contract MilkmanTest is Test {
                 string memory tokenToBuy = sellToBuyMap[tokenToSell];
                 fromToken = IERC20(tokenAddress[tokenToSell]);
                 toToken = IERC20(tokenAddress[tokenToBuy]);
-                amountIn = amounts[tokenToSell] * 1e18;
+                uint8 decimals = IERC20Metadata(address(fromToken)).decimals();
+                amountIn = amounts[tokenToSell] * (10 ** decimals);
                 whale = whaleAddresses[tokenToSell];
-                amountIn = amounts[tokenToSell] * 1e18;
                 priceChecker = priceCheckers[tokenToSell];
             }
 
