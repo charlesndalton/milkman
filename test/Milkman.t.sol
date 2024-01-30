@@ -286,67 +286,7 @@ contract MilkmanTest is Test {
             bytes4 isValidSignature = Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
 
             assertEq(isValidSignature, MAGIC_VALUE);
-
-            // bytes memory signatureEncodedOrder = encodeOrderEIP1271(
-            //     amountToSell,
-            //     buyAmount,
-            //     uint32(validTo),
-            //     feeAmount
-            // );
-
-            // bytes memory signatureEncodedOrder = abi.encode(
-            //     address(fromToken),
-            //     address(toToken),
-            //     whale,
-            //     amountToSell,
-            //     buyAmount,
-            //     validTo,
-            //     APP_DATA,
-            //     feeAmount,
-            //     KIND_SELL,
-            //     false,
-            //     ERC20_BALANCE,
-            //     ERC20_BALANCE,
-            //     whale,
-            //     priceChecker,
-            //     bytes("")
-            // );
-
-            // bytes memory feeBytes = vm.parseJson(json, ".quote.fee");
-            // uint256 fee = abi.decode(feeBytes, (uint256));
-            // console.log("fee", fee);
-
-            // bytes memory sellTokenBytes = vm.parseJson(json, ".quote.sellToken");
-            // address sellToken = abi.decode(sellTokenBytes, (address));
-            // console.log("sellToken", sellToken);
-
-            // bytes memory b = vm.parseJson(json, ".quote.sellToken");
-            // console.log(string(b));
-            // address b = vm.parseJsonAddress(json, ".quote.sellToken");
-            // console.log(b);
-
-            // (uint256 status, bytes memory data) = "https://httpbin.org/get".get();
-            // console.log("status", status);
-            // console.log("body", string(data));
-
-            // console.log(orderContract);
-            // console.lo(fromToken.balanceOf(orderContract));
-
-            // console.log("log", entries[3].topics.length);
-
-            // assertEq(entries.length, 1);
-
-            // vm.expectEmit(true, true, true, true);
         }
-        // priceChecker = sushiswapPriceChecker;
-        // Arrange: Set up the state before calling the function
-        // uint256 amountIn = 1e18;  // Example amount
-
-        // // Act: Call the function you want to test
-
-        // Assert: Check the state after calling the function
-        // Example: Assert that the swap was requested correctly
-        // assertTrue(true);
     }
 
     // Additional test cases for different scenarios and edge cases
