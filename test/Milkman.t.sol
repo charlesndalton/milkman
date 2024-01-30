@@ -12,7 +12,8 @@ import "../src/pricecheckers/UniV2ExpectedOutCalculator.sol";
 import "../src/pricecheckers/CurveExpectedOutCalculator.sol";
 import "../src/pricecheckers/UniV3ExpectedOutCalculator.sol";
 import "../src/pricecheckers/ChainlinkExpectedOutCalculator.sol";
-// import "../src/pricecheckers/SingleSidedBalancerBalWethExpectedOutCalculator.sol";
+import {SingleSidedBalancerBalWethExpectedOutCalculator} from "../src/pricecheckers/SingleSidedBalancerBalWethExpectedOutCalculator.sol";
+import "../src/pricecheckers/MetaExpectedOutCalculator.sol";
 import "../src/pricecheckers/FixedSlippageChecker.sol";
 import "../src/pricecheckers/DynamicSlippageChecker.sol";
 import {GPv2Order} from "@cow-protocol/contracts/libraries/GPv2Order.sol";
@@ -25,13 +26,24 @@ contract MilkmanTest is Test {
     using GPv2Order for GPv2Order.Data;
 
     Milkman milkman;
-    address sushiswapExpectedOutCalculator;
-    address sushiswapPriceChecker;
     IERC20 fromToken;
     IERC20 toToken;
     uint256 amountIn;
     address priceChecker;
     address whale;
+
+    address chainlinkExpectedOutCalculator;
+    address curveExpectedOutCalculator;
+    address sushiswapExpectedOutCalculator;
+    address ssbBalWethExpectedOutCalculator;
+    address univ3ExpectedOutCalculator;
+    address metaExpectedOutCalculator;
+    address chainlinkPriceChecker;
+    address curvePriceChecker;
+    address sushiswapPriceChecker;
+    address univ3PriceChecker;
+    address metaPriceChecker;
+    address ssbBalWethPriceChecker;
 
     bytes32 public constant APP_DATA = 0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24;
     bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
@@ -57,10 +69,52 @@ contract MilkmanTest is Test {
 
     function setUp() public {
         milkman = new Milkman();
-        sushiswapExpectedOutCalculator =
-            address(new UniV2ExpectedOutCalculator("SUSHISWAP_EXPECTED_OUT_CALCULATOR", SUSHISWAP_ROUTER));
-        sushiswapPriceChecker =
-            address(new FixedSlippageChecker("SUSHISWAP_500_BPS_PRICE_CHECKER", 500, sushiswapExpectedOutCalculator));
+        chainlinkExpectedOutCalculator = address(new ChainlinkExpectedOutCalculator());
+        curveExpectedOutCalculator = address(new CurveExpectedOutCalculator());
+        
+        sushiswapExpectedOutCalculator = address(new UniV2ExpectedOutCalculator(
+            "SUSHI_EXPECTED_OUT_CALCULATOR",
+            0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F // Sushi Router
+        ));
+
+        ssbBalWethExpectedOutCalculator = address(new SingleSidedBalancerBalWethExpectedOutCalculator());
+        univ3ExpectedOutCalculator = address(new UniV3ExpectedOutCalculator());
+        metaExpectedOutCalculator = address(new MetaExpectedOutCalculator());
+
+        chainlinkPriceChecker = address(new DynamicSlippageChecker(
+            "CHAINLINK_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
+            chainlinkExpectedOutCalculator
+        ));
+
+        curvePriceChecker = address(new DynamicSlippageChecker(
+            "CURVE_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
+            curveExpectedOutCalculator
+        ));
+
+        sushiswapPriceChecker = address(new FixedSlippageChecker(
+            "SUSHISWAP_STATIC_500_BPS_SLIPPAGE_PRICE_CHECKER",
+            500, // 5% slippage
+            sushiswapExpectedOutCalculator
+        ));
+
+        univ3PriceChecker = address(new DynamicSlippageChecker(
+            "UNIV3_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
+            univ3ExpectedOutCalculator
+        ));
+
+        metaPriceChecker = address(new DynamicSlippageChecker(
+            "META_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
+            metaExpectedOutCalculator
+        ));
+
+        ssbBalWethPriceChecker = address(new DynamicSlippageChecker(
+            "SSB_BAL_WETH_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
+            ssbBalWethExpectedOutCalculator
+        ));
+        // sushiswapExpectedOutCalculator =
+        //     address(new UniV2ExpectedOutCalculator("SUSHISWAP_EXPECTED_OUT_CALCULATOR", SUSHISWAP_ROUTER));
+        // sushiswapPriceChecker =
+        //     address(new FixedSlippageChecker("SUSHISWAP_500_BPS_PRICE_CHECKER", 500, sushiswapExpectedOutCalculator));
 
         tokenAddress["TOKE"] = 0x2e9d63788249371f1DFC918a52f8d799F4a38C94;
         tokenAddress["DAI"] = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
