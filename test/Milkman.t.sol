@@ -333,6 +333,21 @@ contract MilkmanTest is Test {
 
                 assertEq(isValidSignature, MAGIC_VALUE);
             }
+
+            // now check that it will revert with a bad price
+
+            uint256 badAmountOut = (buyAmount * 4) / 5;
+
+            assertFalse(
+                IPriceChecker(priceChecker).checkPrice(
+                    amountToSell, 
+                    address(fromToken), 
+                    address(toToken), 
+                    feeAmount, 
+                    badAmountOut,
+                    bytes("")
+                )
+            );
         }
     }
 
