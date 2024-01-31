@@ -334,7 +334,7 @@ contract MilkmanTest is Test {
                 assertEq(isValidSignature, MAGIC_VALUE);
             }
 
-            // now check that it will revert with a bad price
+            // check that price checker returns false with bad price
 
             uint256 badAmountOut = (buyAmount * 4) / 5;
 
@@ -348,6 +348,32 @@ contract MilkmanTest is Test {
                     bytes("")
                 )
             );
+
+            // check that milkman reverts with bad price
+
+            order.buyAmount = badAmountOut;
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+            vm.expectRevert("invalid_min_out");
+            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+
+            // check that milkman reverts if the hash doesn't match the order
+
+            order.buyAmount = buyAmount;
+            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+            order.validTo = validTo + 10;
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            vm.expectRevert("!match");
+            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+
+            // check that milkman reverts if the keeper generates a buy order
+
+            order.validTo = validTo;
+            order.kind = GPv2Order.KIND_BUY;
+            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            vm.expectRevert("!kind_sell");
+            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
         }
     }
 
