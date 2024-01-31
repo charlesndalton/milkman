@@ -356,24 +356,35 @@ contract MilkmanTest is Test {
             orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
             vm.expectRevert("invalid_min_out");
             Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+            order.buyAmount = buyAmount;
 
             // check that milkman reverts if the hash doesn't match the order
 
-            order.buyAmount = buyAmount;
             orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
             order.validTo = validTo + 10;
             signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
             vm.expectRevert("!match");
             Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+            order.validTo = validTo;
 
             // check that milkman reverts if the keeper generates a buy order
 
-            order.validTo = validTo;
             order.kind = GPv2Order.KIND_BUY;
             orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
             signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
             vm.expectRevert("!kind_sell");
             Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+            order.kind = GPv2Order.KIND_SELL;
+
+            // check that milkman reverts if the validTo is too close
+
+            uint32 badValidTo = uint32(block.timestamp) + 2 * 60;
+            order.validTo = badValidTo;
+            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            vm.expectRevert("expires_too_soon");
+            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+            order.validTo = validTo;
         }
     }
 
