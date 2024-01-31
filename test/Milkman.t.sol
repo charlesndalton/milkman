@@ -207,7 +207,7 @@ contract MilkmanTest is Test {
         // priceCheckers["ALCX"] = validFrom;
 
         // tokensToSell = ["TOKE", "USDC", "GUSD", "AAVE", "BAT", "WETH", "UNI", "ALCX", "BAL", "YFI", "USDT", "COW"];
-        tokensToSell = ["TOKE"];
+        tokensToSell = ["USDC"];
     }
 
     function testRequestSwapExactTokensForTokens() public {
@@ -240,10 +240,14 @@ contract MilkmanTest is Test {
 
             Vm.Log[] memory entries = vm.getRecordedLogs();
 
-            assertEq(entries[3].topics[0], SWAP_REQUESTED_EVENT);
-
-            (address orderContract,,,,,,,) =
-                (abi.decode(entries[3].data, (address, address, uint256, address, address, address, address, bytes)));
+            address orderContract = address(0);
+            for (uint8 i = 0; i < entries.length; ++i) {
+                if (entries[i].topics[0] == SWAP_REQUESTED_EVENT) {
+                    (orderContract,,,,,,,) =
+                        (abi.decode(entries[i].data, (address, address, uint256, address, address, address, address, bytes)));
+                }
+            }
+            assertNotEq(orderContract, address(0));
 
             assertEq(fromToken.balanceOf(orderContract), amountIn);
 
