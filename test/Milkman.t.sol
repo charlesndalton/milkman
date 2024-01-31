@@ -172,7 +172,7 @@ contract MilkmanTest is Test {
 
         amounts["TOKE"] = 80000; // 80,000 TOKE
         amounts["USDC"] = 5000000; // 5,000,000 USDC
-        amounts["GUSD"] = 1000; // 1,000 GUSD
+        amounts["GUSD"] = 10_000; // 10,000 GUSD
         amounts["AAVE"] = 2500; // 2,500 AAVE
         amounts["BAT"] = 280000; // 280,000 BAT
         amounts["WETH"] = 325; // 325 WETH
@@ -213,11 +213,12 @@ contract MilkmanTest is Test {
         // priceCheckers["COW"] = fixedMinOut;
         // priceCheckers["ALCX"] = validFrom;
 
-        priceCheckerDatas["TOKE"] = bytes("");
-        priceCheckerDatas["USDC"] = dynamicSlippagePriceCheckerData(400, bytes(""));
+        priceCheckerDatas["TOKE"] = bytes("0");
+        priceCheckerDatas["USDC"] = dynamicSlippagePriceCheckerData(10, bytes("")); // up to $10 lost allowed
+        priceCheckerDatas["GUSD"] = dynamicSlippagePriceCheckerData(100, bytes("")); // up to $100 lost allowed
 
         // tokensToSell = ["TOKE", "USDC", "GUSD", "AAVE", "BAT", "WETH", "UNI", "ALCX", "BAL", "YFI", "USDT", "COW"];
-        tokensToSell = ["USDC"];
+        tokensToSell = ["TOKE", "GUSD", "USDC"];
     }
 
     function testRequestSwapExactTokensForTokens() public {
@@ -264,7 +265,7 @@ contract MilkmanTest is Test {
 
             {
                 bytes32 expectedSwapHash =
-                    keccak256(abi.encode(whale, address(this), fromToken, toToken, amountIn, priceChecker, priceCheckerData)); 
+                    keccak256(abi.encode(whale, address(this), fromToken, toToken, amountIn, priceChecker, priceCheckerData));
                 assertEq(Milkman(orderContract).swapHash(), expectedSwapHash);
             }
 
@@ -305,7 +306,7 @@ contract MilkmanTest is Test {
 
             assertTrue(
                 IPriceChecker(priceChecker).checkPrice(
-                    amountToSell, address(fromToken), address(toToken), feeAmount, buyAmount, priceCheckerData
+                    amountIn, address(fromToken), address(toToken), feeAmount, buyAmount, priceCheckerData
                 )
             );
 
