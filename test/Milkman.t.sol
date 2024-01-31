@@ -20,6 +20,7 @@ import "../src/pricecheckers/DynamicSlippageChecker.sol";
 import {GPv2Order} from "@cow-protocol/contracts/libraries/GPv2Order.sol";
 import {IERC20 as CoWIERC20} from "@cow-protocol/contracts/interfaces/IERC20.sol";
 // import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 interface IERC20Metadata {
     function decimals() external view returns (uint8);
 }
@@ -28,6 +29,7 @@ contract MilkmanTest is Test {
     using Surl for *;
     using stdJson for string;
     using GPv2Order for GPv2Order.Data;
+    using SafeMath for uint256;
 
     Milkman milkman;
     IERC20 fromToken;
@@ -305,9 +307,17 @@ contract MilkmanTest is Test {
 
             bytes32 orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
 
+            uint256 gasBefore = gasleft();
             bytes4 isValidSignature = Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+            uint256 gasAfter = gasleft();
+
+            uint256 gasConsumed = gasBefore.sub(gasAfter);
+
+            console.log("gas consumed:", gasConsumed);
 
             assertEq(isValidSignature, MAGIC_VALUE);
+
+            assertLt(gasConsumed, 1_000_000);
         }
     }
 
