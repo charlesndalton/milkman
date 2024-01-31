@@ -384,6 +384,24 @@ contract MilkmanTest is Test {
             vm.expectRevert("!fill_or_kill");
             Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
             order.partiallyFillable = false;
+            
+            // check that milkman reverts if set to non ERC20 sell balance
+
+            order.sellTokenBalance = GPv2Order.BALANCE_EXTERNAL;
+            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            vm.expectRevert("!sell_erc20");
+            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+            order.sellTokenBalance = GPv2Order.BALANCE_ERC20;
+
+            // check that milkman reverts if set to non ERC20 buy balance
+
+            order.buyTokenBalance = GPv2Order.BALANCE_INTERNAL;
+            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            vm.expectRevert("!buy_erc20");
+            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+            order.buyTokenBalance = GPv2Order.BALANCE_ERC20;
         }
     }
 
