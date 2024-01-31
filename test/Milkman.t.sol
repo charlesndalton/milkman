@@ -385,6 +385,15 @@ contract MilkmanTest is Test {
             vm.expectRevert("expires_too_soon");
             Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
             order.validTo = validTo;
+
+            // check that milkman reverts for non-fill-or-kill orders
+
+            order.partiallyFillable = true;
+            orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            vm.expectRevert("!fill_or_kill");
+            Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
+            order.partiallyFillable = false;
         }
     }
 
