@@ -82,9 +82,9 @@ contract MilkmanTest is Test {
 
         sushiswapExpectedOutCalculator = address(
             new UniV2ExpectedOutCalculator(
-                                    "SUSHI_EXPECTED_OUT_CALCULATOR",
-                                    0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F // Sushi Router
-                                )
+                                                "SUSHI_EXPECTED_OUT_CALCULATOR",
+                                                0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F // Sushi Router
+                                            )
         );
 
         ssbBalWethExpectedOutCalculator = address(new SingleSidedBalancerBalWethExpectedOutCalculator());
@@ -93,45 +93,45 @@ contract MilkmanTest is Test {
 
         chainlinkPriceChecker = address(
             new DynamicSlippageChecker(
-                                    "CHAINLINK_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
-                                    chainlinkExpectedOutCalculator
-                                )
+                                                "CHAINLINK_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
+                                                chainlinkExpectedOutCalculator
+                                            )
         );
 
         curvePriceChecker = address(
             new DynamicSlippageChecker(
-                                    "CURVE_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
-                                    curveExpectedOutCalculator
-                                )
+                                                "CURVE_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
+                                                curveExpectedOutCalculator
+                                            )
         );
 
         sushiswapPriceChecker = address(
             new FixedSlippageChecker(
-                                    "SUSHISWAP_STATIC_500_BPS_SLIPPAGE_PRICE_CHECKER",
-                                    500, // 5% slippage
-                                    sushiswapExpectedOutCalculator
-                                )
+                                                "SUSHISWAP_STATIC_500_BPS_SLIPPAGE_PRICE_CHECKER",
+                                                500, // 5% slippage
+                                                sushiswapExpectedOutCalculator
+                                            )
         );
 
         univ3PriceChecker = address(
             new DynamicSlippageChecker(
-                                    "UNIV3_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
-                                    univ3ExpectedOutCalculator
-                                )
+                                                "UNIV3_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
+                                                univ3ExpectedOutCalculator
+                                            )
         );
 
         metaPriceChecker = address(
             new DynamicSlippageChecker(
-                                    "META_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
-                                    metaExpectedOutCalculator
-                                )
+                                                "META_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
+                                                metaExpectedOutCalculator
+                                            )
         );
 
         ssbBalWethPriceChecker = address(
             new DynamicSlippageChecker(
-                                    "SSB_BAL_WETH_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
-                                    ssbBalWethExpectedOutCalculator
-                                )
+                                                "SSB_BAL_WETH_DYNAMIC_SLIPPAGE_PRICE_CHECKER",
+                                                ssbBalWethExpectedOutCalculator
+                                            )
         );
 
         tokenAddress["TOKE"] = 0x2e9d63788249371f1DFC918a52f8d799F4a38C94;
@@ -290,12 +290,7 @@ contract MilkmanTest is Test {
 
             assertTrue(
                 IPriceChecker(priceChecker).checkPrice(
-                    amountToSell, 
-                    address(fromToken), 
-                    address(toToken), 
-                    feeAmount, 
-                    buyAmount, 
-                    bytes("")
+                    amountToSell, address(fromToken), address(toToken), feeAmount, buyAmount, bytes("")
                 )
             );
 
@@ -340,12 +335,7 @@ contract MilkmanTest is Test {
 
             assertFalse(
                 IPriceChecker(priceChecker).checkPrice(
-                    amountToSell, 
-                    address(fromToken), 
-                    address(toToken), 
-                    feeAmount, 
-                    badAmountOut,
-                    bytes("")
+                    amountToSell, address(fromToken), address(toToken), feeAmount, badAmountOut, bytes("")
                 )
             );
 
