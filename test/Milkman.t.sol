@@ -37,8 +37,9 @@ contract MilkmanTest is Test {
     IERC20 fromToken;
     IERC20 toToken;
     uint256 amountIn;
-    address priceChecker;
     address whale;
+    address priceChecker;
+    bytes priceCheckerData;
 
     address chainlinkExpectedOutCalculator;
     address curveExpectedOutCalculator;
@@ -68,11 +69,17 @@ contract MilkmanTest is Test {
     mapping(string => uint256) private amounts;
     mapping(string => address) private whaleAddresses;
     mapping(string => address) private priceCheckers;
+    mapping(string => bytes) public priceCheckerDatas;
+
 
     function parseUint(string memory json, string memory key) internal pure returns (uint256) {
         bytes memory valueBytes = vm.parseJson(json, key);
         string memory valueString = abi.decode(valueBytes, (string));
         return vm.parseUint(valueString);
+    }
+
+    function dynamicSlippagePriceCheckerData(uint256 allowedSlippageBips, bytes memory expectedOutData) internal pure returns (bytes memory) {
+        return abi.encode(allowedSlippageBips, expectedOutData);
     }
 
     function setUp() public {
@@ -206,6 +213,9 @@ contract MilkmanTest is Test {
         // priceCheckers["COW"] = fixedMinOut;
         // priceCheckers["ALCX"] = validFrom;
 
+        priceCheckerDatas["TOKE"] = bytes("");
+        priceCheckerDatas["USDC"] = dynamicSlippagePriceCheckerData(400, bytes(""));
+
         // tokensToSell = ["TOKE", "USDC", "GUSD", "AAVE", "BAT", "WETH", "UNI", "ALCX", "BAL", "YFI", "USDT", "COW"];
         tokensToSell = ["USDC"];
     }
@@ -221,6 +231,7 @@ contract MilkmanTest is Test {
                 amountIn = amounts[tokenToSell] * (10 ** decimals);
                 whale = whaleAddresses[tokenToSell];
                 priceChecker = priceCheckers[tokenToSell];
+                priceCheckerData = priceCheckerDatas[tokenToSell];
             }
 
             vm.prank(whale);
@@ -235,7 +246,7 @@ contract MilkmanTest is Test {
                 toToken,
                 address(this), // Receiver address
                 priceChecker,
-                "" // priceCheckerData
+                priceCheckerData
             );
 
             Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -253,7 +264,7 @@ contract MilkmanTest is Test {
 
             {
                 bytes32 expectedSwapHash =
-                    keccak256(abi.encode(whale, address(this), fromToken, toToken, amountIn, priceChecker, bytes("")));
+                    keccak256(abi.encode(whale, address(this), fromToken, toToken, amountIn, priceChecker, priceCheckerData)); 
                 assertEq(Milkman(orderContract).swapHash(), expectedSwapHash);
             }
 
@@ -294,7 +305,7 @@ contract MilkmanTest is Test {
 
             assertTrue(
                 IPriceChecker(priceChecker).checkPrice(
-                    amountToSell, address(fromToken), address(toToken), feeAmount, buyAmount, bytes("")
+                    amountToSell, address(fromToken), address(toToken), feeAmount, buyAmount, priceCheckerData
                 )
             );
 
@@ -315,7 +326,7 @@ contract MilkmanTest is Test {
                 appData: APP_DATA
             });
 
-            bytes memory signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            bytes memory signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
 
             bytes32 orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
 
@@ -339,14 +350,14 @@ contract MilkmanTest is Test {
 
             assertFalse(
                 IPriceChecker(priceChecker).checkPrice(
-                    amountToSell, address(fromToken), address(toToken), feeAmount, badAmountOut, bytes("")
+                    amountToSell, address(fromToken), address(toToken), feeAmount, badAmountOut, priceCheckerData
                 )
             );
 
             // check that milkman reverts with bad price
 
             order.buyAmount = badAmountOut;
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
             orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
             vm.expectRevert("invalid_min_out");
             Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
@@ -356,7 +367,7 @@ contract MilkmanTest is Test {
 
             orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
             order.validTo = validTo + 10;
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
             vm.expectRevert("!match");
             Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
             order.validTo = validTo;
@@ -365,7 +376,7 @@ contract MilkmanTest is Test {
 
             order.kind = GPv2Order.KIND_BUY;
             orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
             vm.expectRevert("!kind_sell");
             Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
             order.kind = GPv2Order.KIND_SELL;
@@ -375,7 +386,7 @@ contract MilkmanTest is Test {
             uint32 badValidTo = uint32(block.timestamp) + 2 * 60;
             order.validTo = badValidTo;
             orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
             vm.expectRevert("expires_too_soon");
             Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
             order.validTo = validTo;
@@ -384,7 +395,7 @@ contract MilkmanTest is Test {
 
             order.partiallyFillable = true;
             orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
             vm.expectRevert("!fill_or_kill");
             Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
             order.partiallyFillable = false;
@@ -393,7 +404,7 @@ contract MilkmanTest is Test {
 
             order.sellTokenBalance = GPv2Order.BALANCE_EXTERNAL;
             orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
             vm.expectRevert("!sell_erc20");
             Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
             order.sellTokenBalance = GPv2Order.BALANCE_ERC20;
@@ -402,7 +413,7 @@ contract MilkmanTest is Test {
 
             order.buyTokenBalance = GPv2Order.BALANCE_INTERNAL;
             orderDigest = order.hash(milkman.DOMAIN_SEPARATOR());
-            signatureEncodedOrder = abi.encode(order, whale, priceChecker, bytes(""));
+            signatureEncodedOrder = abi.encode(order, whale, priceChecker, priceCheckerData);
             vm.expectRevert("!buy_erc20");
             Milkman(orderContract).isValidSignature(orderDigest, signatureEncodedOrder);
             order.buyTokenBalance = GPv2Order.BALANCE_ERC20;
