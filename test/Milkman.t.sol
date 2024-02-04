@@ -58,6 +58,8 @@ contract MilkmanTest is Test {
     bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
     bytes4 internal constant NON_MAGIC_VALUE = 0xffffffff;
 
+    bytes internal constant ZERO_BYTES = bytes("0");
+
     bytes32 public constant SWAP_REQUESTED_EVENT =
         keccak256("SwapRequested(address,address,uint256,address,address,address,address,bytes)");
 
@@ -71,6 +73,17 @@ contract MilkmanTest is Test {
     mapping(string => address) private priceCheckers;
     mapping(string => bytes) public priceCheckerDatas;
 
+    function univ2ExpectedOutData() internal pure returns (bytes memory) {
+        return ZERO_BYTES;
+    }
+
+    function curveExpectedOutData() internal pure returns (bytes memory) {
+        return ZERO_BYTES;
+    }
+
+    function chainlinkExpectedOutData(address[] memory priceFeeds, bool[] memory reverses) internal pure returns (bytes memory) {
+        return abi.encode(priceFeeds, reverses);
+    }
 
     function parseUint(string memory json, string memory key) internal pure returns (uint256) {
         bytes memory valueBytes = vm.parseJson(json, key);
@@ -213,12 +226,18 @@ contract MilkmanTest is Test {
         // priceCheckers["COW"] = fixedMinOut;
         // priceCheckers["ALCX"] = validFrom;
 
-        priceCheckerDatas["TOKE"] = bytes("0");
-        priceCheckerDatas["USDC"] = dynamicSlippagePriceCheckerData(10, bytes("")); // up to $10 lost allowed
-        priceCheckerDatas["GUSD"] = dynamicSlippagePriceCheckerData(100, bytes("")); // up to $100 lost allowed
+        priceCheckerDatas["TOKE"] = curveExpectedOutData();
+        priceCheckerDatas["USDC"] = dynamicSlippagePriceCheckerData(10, curveExpectedOutData()); // up to $10 lost allowed
+        priceCheckerDatas["GUSD"] = dynamicSlippagePriceCheckerData(100, curveExpectedOutData()); // up to $100 lost allowed
 
+        address[] memory priceFeeds = new address[](1);
+        priceFeeds[0] = 0x6Df09E975c830ECae5bd4eD9d90f3A95a4f88012;
+        bool[] memory reverses = new bool[](1);
+        reverses[0] = false;
+        priceCheckerDatas["AAVE"] = dynamicSlippagePriceCheckerData(1000, 
+            chainlinkExpectedOutData(priceFeeds, reverses));
         // tokensToSell = ["TOKE", "USDC", "GUSD", "AAVE", "BAT", "WETH", "UNI", "ALCX", "BAL", "YFI", "USDT", "COW"];
-        tokensToSell = ["TOKE", "GUSD", "USDC"];
+        tokensToSell = ["TOKE", "GUSD", "USDC", "AAVE"];
     }
 
     function testRequestSwapExactTokensForTokens() public {
