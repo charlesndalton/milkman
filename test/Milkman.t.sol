@@ -173,7 +173,7 @@ contract MilkmanTest is Test {
         tokenAddress["ALCX"] = 0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF;
         tokenAddress["WBTC"] = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
         tokenAddress["UNI"] = 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984;
-        tokenAddress["BAL"] = 0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF;
+        tokenAddress["BAL"] = 0xba100000625a3754423978a60c9317c58a424e3D;
         tokenAddress["BAL/WETH"] = 0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56;
         tokenAddress["YFI"] = 0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e;
         tokenAddress["COW"] = 0xDEf1CA1fb7FBcDC777520aa7f396b4E015F497aB;
@@ -265,11 +265,20 @@ contract MilkmanTest is Test {
         uniPoolFees[0] = 30;
         uniPoolFees[1] = 5;
         uniPoolFees[2] = 1;
-        priceCheckerDatas["UNI"] = dynamicSlippagePriceCheckerData(1000, 
+        priceCheckerDatas["UNI"] = dynamicSlippagePriceCheckerData(500, 
             univ3ExpectedOutData(uniSwapPath, uniPoolFees));  
 
+        priceCheckerDatas["BAL"] = dynamicSlippagePriceCheckerData(50, ssbWethExpectedOutData());
+
+        address[] memory yfiPriceFeeds = new address[](1);
+        yfiPriceFeeds[0] = 0xA027702dbb89fbd58938e4324ac03B58d812b0E1;
+        bool[] memory yfiReverses = new bool[](1);
+        yfiReverses[0] = false;
+        priceCheckerDatas["YFI"] = dynamicSlippagePriceCheckerData(400, 
+            chainlinkExpectedOutData(yfiPriceFeeds, yfiReverses));
+
         // tokensToSell = ["TOKE", "USDC", "GUSD", "AAVE", "BAT", "WETH", "UNI", "ALCX", "BAL", "YFI", "USDT", "COW"];
-        tokensToSell = ["TOKE", "GUSD", "USDC", "AAVE", "BAT", "WETH", "UNI"];
+        tokensToSell = ["TOKE", "GUSD", "USDC", "AAVE", "BAT", "WETH", "UNI", "BAL", "YFI"];
     }
 
     function testRequestSwapExactTokensForTokens() public {
