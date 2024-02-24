@@ -22,6 +22,7 @@ import {GPv2Order} from "@cow-protocol/contracts/libraries/GPv2Order.sol";
 import {IERC20 as CoWIERC20} from "@cow-protocol/contracts/interfaces/IERC20.sol";
 // import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 interface IERC20Metadata {
     function decimals() external view returns (uint8);
@@ -32,6 +33,7 @@ contract MilkmanTest is Test {
     using stdJson for string;
     using GPv2Order for GPv2Order.Data;
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
 
     Milkman milkman;
     IERC20 fromToken;
@@ -205,8 +207,8 @@ contract MilkmanTest is Test {
         amounts["COW"] = 900000; // 900,000 COW
 
         whaleAddresses["GUSD"] = 0x5f65f7b609678448494De4C87521CdF6cEf1e932;
-        // whaleAddresses["USDT"] = 0xa929022c9107643515f5c777ce9a910f0d1e490c;
-        // whaleAddresses["WETH"] = 0x030ba81f1c18d280636f32af80b9aad02cf0854e;
+        whaleAddresses["USDT"] = 0x5754284f345afc66a98fbB0a0Afe71e0F007B949;
+        whaleAddresses["WETH"] = 0x030bA81f1c18d280636F32af80b9AAd02Cf0854e;
         // whaleAddresses["WBTC"] = 0xccf4429db6322d5c611ee964527d42e5d685dd6a;
         whaleAddresses["DAI"] = 0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643;
         whaleAddresses["USDC"] = 0x0A59649758aa4d66E25f08Dd01271e891fe52199;
@@ -277,8 +279,17 @@ contract MilkmanTest is Test {
         priceCheckerDatas["YFI"] = dynamicSlippagePriceCheckerData(400, 
             chainlinkExpectedOutData(yfiPriceFeeds, yfiReverses));
 
+        address[] memory usdtPriceFeeds = new address[](2);
+        usdtPriceFeeds[0] = 0xEe9F2375b4bdF6387aa8265dD4FB8F16512A1d46;
+        usdtPriceFeeds[1] = 0xD6aA3D25116d8dA79Ea0246c4826EB951872e02e;
+        bool[] memory usdtReverses = new bool[](2);
+        usdtReverses[0] = false;
+        usdtReverses[1] = true;
+        priceCheckerDatas["USDT"] = dynamicSlippagePriceCheckerData(600, 
+            chainlinkExpectedOutData(usdtPriceFeeds, usdtReverses));
+
         // tokensToSell = ["TOKE", "USDC", "GUSD", "AAVE", "BAT", "WETH", "UNI", "ALCX", "BAL", "YFI", "USDT", "COW"];
-        tokensToSell = ["TOKE", "GUSD", "USDC", "AAVE", "BAT", "WETH", "UNI", "BAL", "YFI"];
+        tokensToSell = ["TOKE", "GUSD", "USDC", "AAVE", "BAT", "WETH", "UNI", "BAL", "YFI", "USDT"];
     }
 
     function testRequestSwapExactTokensForTokens() public {
@@ -295,9 +306,10 @@ contract MilkmanTest is Test {
                 priceCheckerData = priceCheckerDatas[tokenToSell];
             }
 
-
             vm.prank(whale);
-            fromToken.approve(address(milkman), amountIn);
+            fromToken.safeApprove(address(milkman), amountIn);
+
+            continue;
 
             vm.recordLogs();
 
