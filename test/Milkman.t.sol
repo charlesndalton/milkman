@@ -81,8 +81,16 @@ contract MilkmanTest is Test {
         return ZERO_BYTES;
     }
 
+    function ssbWethExpectedOutData() internal pure returns (bytes memory) {
+        return ZERO_BYTES;
+    }
+
     function chainlinkExpectedOutData(address[] memory priceFeeds, bool[] memory reverses) internal pure returns (bytes memory) {
         return abi.encode(priceFeeds, reverses);
+    }
+
+    function univ3ExpectedOutData(address[] memory swapPath, uint24[] memory poolFees) internal pure returns (bytes memory) {
+        return abi.encode(swapPath, poolFees);
     }
 
     function parseUint(string memory json, string memory key) internal pure returns (uint256) {
@@ -187,7 +195,7 @@ contract MilkmanTest is Test {
         amounts["USDC"] = 5000000; // 5,000,000 USDC
         amounts["GUSD"] = 10_000; // 10,000 GUSD
         amounts["AAVE"] = 2500; // 2,500 AAVE
-        amounts["BAT"] = 280000; // 280,000 BAT
+        amounts["BAT"] = 28000; // 28,000 BAT
         amounts["WETH"] = 325; // 325 WETH
         amounts["UNI"] = 80000; // 80,000 UNI
         amounts["ALCX"] = 4000; // 4,000 ALCX
@@ -230,14 +238,38 @@ contract MilkmanTest is Test {
         priceCheckerDatas["USDC"] = dynamicSlippagePriceCheckerData(10, curveExpectedOutData()); // up to $10 lost allowed
         priceCheckerDatas["GUSD"] = dynamicSlippagePriceCheckerData(100, curveExpectedOutData()); // up to $100 lost allowed
 
-        address[] memory priceFeeds = new address[](1);
-        priceFeeds[0] = 0x6Df09E975c830ECae5bd4eD9d90f3A95a4f88012;
-        bool[] memory reverses = new bool[](1);
-        reverses[0] = false;
+        address[] memory aavePriceFeeds = new address[](1);
+        aavePriceFeeds[0] = 0x6Df09E975c830ECae5bd4eD9d90f3A95a4f88012;
+        bool[] memory aaveReverses = new bool[](1);
+        aaveReverses[0] = false;
         priceCheckerDatas["AAVE"] = dynamicSlippagePriceCheckerData(1000, 
-            chainlinkExpectedOutData(priceFeeds, reverses));
+            chainlinkExpectedOutData(aavePriceFeeds, aaveReverses));
+        
+        address[] memory batPriceFeeds = new address[](2);
+        batPriceFeeds[0] = 0x0d16d4528239e9ee52fa531af613AcdB23D88c94;
+        batPriceFeeds[1] = 0x194a9AaF2e0b67c35915cD01101585A33Fe25CAa;
+        bool[] memory batReverses = new bool[](2);
+        batReverses[0] = false;
+        batReverses[1] = true;
+        priceCheckerDatas["BAT"] = dynamicSlippagePriceCheckerData(600, 
+            chainlinkExpectedOutData(batPriceFeeds, batReverses));
+        
+        priceCheckerDatas["WETH"] = dynamicSlippagePriceCheckerData(200, ssbWethExpectedOutData());
+
+        address[] memory uniSwapPath = new address[](4);
+        uniSwapPath[0] = tokenAddress["UNI"];
+        uniSwapPath[1] = tokenAddress["WETH"];
+        uniSwapPath[2] = tokenAddress["USDC"];
+        uniSwapPath[3] = tokenAddress["USDT"];
+        uint24[] memory uniPoolFees = new uint24[](3);
+        uniPoolFees[0] = 30;
+        uniPoolFees[1] = 5;
+        uniPoolFees[2] = 1;
+        priceCheckerDatas["UNI"] = dynamicSlippagePriceCheckerData(1000, 
+            univ3ExpectedOutData(uniSwapPath, uniPoolFees));  
+
         // tokensToSell = ["TOKE", "USDC", "GUSD", "AAVE", "BAT", "WETH", "UNI", "ALCX", "BAL", "YFI", "USDT", "COW"];
-        tokensToSell = ["TOKE", "GUSD", "USDC", "AAVE"];
+        tokensToSell = ["TOKE", "GUSD", "USDC", "AAVE", "BAT", "WETH", "UNI"];
     }
 
     function testRequestSwapExactTokensForTokens() public {
@@ -253,6 +285,7 @@ contract MilkmanTest is Test {
                 priceChecker = priceCheckers[tokenToSell];
                 priceCheckerData = priceCheckerDatas[tokenToSell];
             }
+
 
             vm.prank(whale);
             fromToken.approve(address(milkman), amountIn);
@@ -328,6 +361,7 @@ contract MilkmanTest is Test {
                     amountIn, address(fromToken), address(toToken), feeAmount, buyAmount, priceCheckerData
                 )
             );
+
 
             uint32 validTo = uint32(block.timestamp) + 60 * 60 * 24;
 
