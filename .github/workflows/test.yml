@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
       with:
         submodules: recursive
 
@@ -20,5 +20,5 @@ jobs:
       uses: foundry-rs/foundry-toolchain@v1
 
     - name: Run tests
-      run: forge test -vv --fork-url "https://mainnet.infura.io/v3/b7821200399e4be2b4e5dbdf06fbe85b" --etherscan-api-key "MW5CQA6QK5YMJXP2WP3RA36HM5A7RA1IHA" --ffi
+      run: forge test -vv --fork-url "https://mainnet.infura.io/v3/e74132f416d346308763252779d7df22" --etherscan-api-key "MW5CQA6QK5YMJXP2WP3RA36HM5A7RA1IHA" --ffi
 
