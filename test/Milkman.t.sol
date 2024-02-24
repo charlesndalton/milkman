@@ -97,6 +97,10 @@ contract MilkmanTest is Test {
         return abi.encode(swapPath, poolFees);
     }
 
+    function metaExpectedOutData(address[] memory swapPath, address[] memory expectedOutCalculators, bytes[] memory expectedOutCalculatorData) internal pure returns (bytes memory) {
+        return abi.encode(swapPath, expectedOutCalculators, expectedOutCalculatorData);
+    }
+
     function parseUint(string memory json, string memory key) internal pure returns (uint256) {
         bytes memory valueBytes = vm.parseJson(json, key);
         string memory valueString = abi.decode(valueBytes, (string));
@@ -242,7 +246,7 @@ contract MilkmanTest is Test {
         priceCheckers["BAL"] = ssbBalWethPriceChecker;
         priceCheckers["WETH"] = ssbBalWethPriceChecker;
         priceCheckers["COW"] = fixedMinOutPriceChecker;
-        // priceCheckers["ALCX"] = validFrom;
+        priceCheckers["ALCX"] = metaPriceChecker;
 
         priceCheckerDatas["TOKE"] = curveExpectedOutData();
         priceCheckerDatas["USDC"] = dynamicSlippagePriceCheckerData(10, curveExpectedOutData()); // up to $10 lost allowed
@@ -298,8 +302,29 @@ contract MilkmanTest is Test {
 
         priceCheckerDatas["COW"] = fixedMinOutPriceCheckerData(100_000 * 1e18); 
 
-        // tokensToSell = ["TOKE", "USDC", "GUSD", "AAVE", "BAT", "WETH", "UNI", "ALCX", "BAL", "YFI", "USDT", "COW"];
-        tokensToSell = ["TOKE", "GUSD", "USDC", "AAVE", "BAT", "WETH", "UNI", "BAL", "YFI", "USDT", "COW"];
+        bytes[] memory expectedOutDatas = new bytes[](2);
+
+        address[] memory alcxPriceFeeds = new address[](1);
+        alcxPriceFeeds[0] = 0x194a9AaF2e0b67c35915cD01101585A33Fe25CAa;
+        bool[] memory alcxReverses = new bool[](1);
+        alcxReverses[0] = false;
+        expectedOutDatas[0] = chainlinkExpectedOutData(alcxPriceFeeds, alcxReverses);
+        expectedOutDatas[1] = univ2ExpectedOutData();
+
+        address[] memory alcxSwapPath = new address[](3);
+        alcxSwapPath[0] = tokenAddress["ALCX"];
+        alcxSwapPath[1] = tokenAddress["WETH"];
+        alcxSwapPath[2] = tokenAddress["TOKE"];
+        
+        address[] memory alcxExpectedOutCalculators = new address[](2);
+        alcxExpectedOutCalculators[0] = chainlinkExpectedOutCalculator;
+        alcxExpectedOutCalculators[1] = sushiswapExpectedOutCalculator;
+
+        priceCheckerDatas["ALCX"] = dynamicSlippagePriceCheckerData(600, 
+            metaExpectedOutData(alcxSwapPath, alcxExpectedOutCalculators, expectedOutDatas)
+        );
+
+        tokensToSell = ["TOKE", "GUSD", "USDC", "AAVE", "BAT", "WETH", "UNI", "BAL", "YFI", "USDT", "COW", "ALCX"];
     }
 
     function testRequestSwapExactTokensForTokens() public {
@@ -503,6 +528,4 @@ contract MilkmanTest is Test {
             order.buyTokenBalance = GPv2Order.BALANCE_ERC20;
         }
     }
-
-    // Additional test cases for different scenarios and edge cases
 }
