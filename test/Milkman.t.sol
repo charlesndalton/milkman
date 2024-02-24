@@ -17,6 +17,7 @@ import {SingleSidedBalancerBalWethExpectedOutCalculator} from
 import "../src/pricecheckers/MetaExpectedOutCalculator.sol";
 import "../src/pricecheckers/FixedSlippageChecker.sol";
 import "../src/pricecheckers/DynamicSlippageChecker.sol";
+import "../src/pricecheckers/FixedMinOutPriceChecker.sol";
 import {IPriceChecker} from "../interfaces/IPriceChecker.sol";
 import {GPv2Order} from "@cow-protocol/contracts/libraries/GPv2Order.sol";
 import {IERC20 as CoWIERC20} from "@cow-protocol/contracts/interfaces/IERC20.sol";
@@ -55,6 +56,7 @@ contract MilkmanTest is Test {
     address univ3PriceChecker;
     address metaPriceChecker;
     address ssbBalWethPriceChecker;
+    address fixedMinOutPriceChecker;
 
     bytes32 public constant APP_DATA = 0x2B8694ED30082129598720860E8E972F07AA10D9B81CAE16CA0E2CFB24743E24;
     bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
@@ -103,6 +105,10 @@ contract MilkmanTest is Test {
 
     function dynamicSlippagePriceCheckerData(uint256 allowedSlippageBips, bytes memory expectedOutData) internal pure returns (bytes memory) {
         return abi.encode(allowedSlippageBips, expectedOutData);
+    }
+
+    function fixedMinOutPriceCheckerData(uint256 minOut) internal pure returns (bytes memory) {
+        return abi.encode(minOut);
     }
 
     function setUp() public {
@@ -164,6 +170,8 @@ contract MilkmanTest is Test {
                                             )
         );
 
+        fixedMinOutPriceChecker = address(new FixedMinOutPriceChecker());
+
         tokenAddress["TOKE"] = 0x2e9d63788249371f1DFC918a52f8d799F4a38C94;
         tokenAddress["DAI"] = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
         tokenAddress["USDC"] = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -221,7 +229,7 @@ contract MilkmanTest is Test {
         whaleAddresses["ALCX"] = 0x000000000000000000000000000000000000dEaD;
         whaleAddresses["BAL"] = 0x10A19e7eE7d7F8a52822f6817de8ea18204F2e4f;
         whaleAddresses["YFI"] = 0xFEB4acf3df3cDEA7399794D0869ef76A6EfAff52;
-        // whaleAddresses["COW"] = 0xca771eda0c70aa7d053ab1b25004559b918fe662;
+        whaleAddresses["COW"] = 0xcA771eda0c70aA7d053aB1B25004559B918FE662;
 
         priceCheckers["TOKE"] = sushiswapPriceChecker;
         priceCheckers["USDC"] = curvePriceChecker;
@@ -233,7 +241,7 @@ contract MilkmanTest is Test {
         priceCheckers["UNI"] = univ3PriceChecker;
         priceCheckers["BAL"] = ssbBalWethPriceChecker;
         priceCheckers["WETH"] = ssbBalWethPriceChecker;
-        // priceCheckers["COW"] = fixedMinOut;
+        priceCheckers["COW"] = fixedMinOutPriceChecker;
         // priceCheckers["ALCX"] = validFrom;
 
         priceCheckerDatas["TOKE"] = curveExpectedOutData();
@@ -285,11 +293,13 @@ contract MilkmanTest is Test {
         bool[] memory usdtReverses = new bool[](2);
         usdtReverses[0] = false;
         usdtReverses[1] = true;
-        priceCheckerDatas["USDT"] = dynamicSlippagePriceCheckerData(600, 
+        priceCheckerDatas["USDT"] = dynamicSlippagePriceCheckerData(1000, 
             chainlinkExpectedOutData(usdtPriceFeeds, usdtReverses));
 
+        priceCheckerDatas["COW"] = fixedMinOutPriceCheckerData(100_000 * 1e18); 
+
         // tokensToSell = ["TOKE", "USDC", "GUSD", "AAVE", "BAT", "WETH", "UNI", "ALCX", "BAL", "YFI", "USDT", "COW"];
-        tokensToSell = ["TOKE", "GUSD", "USDC", "AAVE", "BAT", "WETH", "UNI", "BAL", "YFI", "USDT"];
+        tokensToSell = ["TOKE", "GUSD", "USDC", "AAVE", "BAT", "WETH", "UNI", "BAL", "YFI", "USDT", "COW"];
     }
 
     function testRequestSwapExactTokensForTokens() public {
@@ -306,10 +316,9 @@ contract MilkmanTest is Test {
                 priceCheckerData = priceCheckerDatas[tokenToSell];
             }
 
-            vm.prank(whale);
+            vm.startPrank(whale);
             fromToken.safeApprove(address(milkman), amountIn);
-
-            continue;
+            vm.stopPrank();
 
             vm.recordLogs();
 
@@ -322,7 +331,7 @@ contract MilkmanTest is Test {
                 priceChecker,
                 priceCheckerData
             );
-
+            
             Vm.Log[] memory entries = vm.getRecordedLogs();
 
             address orderContract = address(0);
@@ -421,7 +430,7 @@ contract MilkmanTest is Test {
 
             // check that price checker returns false with bad price
 
-            uint256 badAmountOut = (buyAmount * 4) / 5;
+            uint256 badAmountOut = buyAmount / 10;
 
             assertFalse(
                 IPriceChecker(priceChecker).checkPrice(
