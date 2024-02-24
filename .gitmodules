@@ -1,0 +1,15 @@
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "lib/contracts"]
+	path = lib/contracts
+	url = https://github.com/cowprotocol/contracts
+[submodule "lib/balancer-v2-monorepo"]
+	path = lib/balancer-v2-monorepo
+	url = https://github.com/balancer/balancer-v2-monorepo
+[submodule "lib/forge-std"]
+	path = lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "lib/surl-0.7"]
+	path = lib/surl-0.7
+	url = https://github.com/charlesndalton/surl-0.7

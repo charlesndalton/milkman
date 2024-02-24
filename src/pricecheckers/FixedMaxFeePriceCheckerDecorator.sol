@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 pragma solidity ^0.7.6;
+
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -27,24 +28,18 @@ contract FixedMaxFeePriceCheckerDecorator is IPriceChecker {
         uint256 _feeAmount,
         uint256 _minOut,
         bytes calldata _data
-    ) external view override returns (bool) {
-        (uint256 _allowedFeeAmount, bytes memory _data) = abi.decode(
-            _data,
-            (uint256, bytes)
-        );
+    )
+        external
+        view
+        override
+        returns (bool)
+    {
+        (uint256 _allowedFeeAmount, bytes memory _data) = abi.decode(_data, (uint256, bytes));
 
         if (_feeAmount > _allowedFeeAmount) {
             return false;
         }
 
-        return
-            PRICE_CHECKER.checkPrice(
-                _amountIn,
-                _fromToken,
-                _toToken,
-                _feeAmount,
-                _minOut,
-                _data
-            );
+        return PRICE_CHECKER.checkPrice(_amountIn, _fromToken, _toToken, _feeAmount, _minOut, _data);
     }
 }

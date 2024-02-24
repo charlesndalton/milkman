@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 pragma solidity ^0.7.6;
+
 pragma abicoder v2;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -30,11 +31,9 @@ contract Milkman {
     );
 
     /// @dev The contract Milkman needs to give allowance.
-    address internal constant VAULT_RELAYER =
-        0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
+    address internal constant VAULT_RELAYER = 0xC92E8bdf79f0507f65a392b0ab4667716BFE0110;
     /// @dev The settlement contract's EIP-712 domain separator. Milkman uses this to verify that a provided UID matches provided order parameters.
-    bytes32 public constant DOMAIN_SEPARATOR =
-        0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943;
+    bytes32 public constant DOMAIN_SEPARATOR = 0xc078f884a2676e1345748b1feace7b0abee5d00ecadb6e574dcdd109a63e8943;
     bytes4 internal constant MAGIC_VALUE = 0x1626ba7e;
     bytes4 internal constant NON_MAGIC_VALUE = 0xffffffff;
     bytes32 internal constant ROOT_MILKMAN_SWAP_HASH =
@@ -67,7 +66,9 @@ contract Milkman {
         address to,
         address priceChecker,
         bytes calldata priceCheckerData
-    ) external {
+    )
+        external
+    {
         require(address(this) == ROOT_MILKMAN, "!root_milkman"); // can't call `requestSwapExactTokensForTokens` from order contracts
         require(priceChecker != address(0), "!price_checker"); // need to supply a valid price checker
 
@@ -75,30 +76,14 @@ contract Milkman {
 
         fromToken.safeTransferFrom(msg.sender, orderContract, amountIn);
 
-        bytes32 _swapHash = keccak256(
-            abi.encode(
-                msg.sender,
-                to,
-                fromToken,
-                toToken,
-                amountIn,
-                priceChecker,
-                priceCheckerData
-            )
-        );
+        bytes32 _swapHash =
+            keccak256(abi.encode(msg.sender, to, fromToken, toToken, amountIn, priceChecker, priceCheckerData));
 
         Milkman(orderContract).initialize(fromToken, _swapHash);
 
         emit SwapRequested(
-            orderContract,
-            msg.sender,
-            amountIn,
-            address(fromToken),
-            address(toToken),
-            to,
-            priceChecker,
-            priceCheckerData
-        );
+            orderContract, msg.sender, amountIn, address(fromToken), address(toToken), to, priceChecker, priceCheckerData
+            );
     }
 
     function initialize(IERC20 fromToken, bytes32 _swapHash) external {
@@ -117,22 +102,15 @@ contract Milkman {
         address to,
         address priceChecker,
         bytes calldata priceCheckerData
-    ) external {
+    )
+        external
+    {
         bytes32 _storedSwapHash = swapHash;
 
         require(_storedSwapHash != ROOT_MILKMAN_SWAP_HASH, "!cancel_from_root");
 
-        bytes32 _calculatedSwapHash = keccak256(
-            abi.encode(
-                msg.sender,
-                to,
-                fromToken,
-                toToken,
-                amountIn,
-                priceChecker,
-                priceCheckerData
-            )
-        );
+        bytes32 _calculatedSwapHash =
+            keccak256(abi.encode(msg.sender, to, fromToken, toToken, amountIn, priceChecker, priceCheckerData));
 
         require(_storedSwapHash == _calculatedSwapHash, "!valid_creator_proof");
 
@@ -141,45 +119,25 @@ contract Milkman {
 
     /// @param orderDigest The EIP-712 signing digest derived from the order
     /// @param encodedOrder Bytes-encoded order information, originally created by an off-chain bot. Created by concatening the order data (in the form of GPv2Order.Data), the price checker address, and price checker data.
-    function isValidSignature(bytes32 orderDigest, bytes calldata encodedOrder)
-        external
-        view
-        returns (bytes4)
-    {
+    function isValidSignature(bytes32 orderDigest, bytes calldata encodedOrder) external view returns (bytes4) {
         bytes32 _storedSwapHash = swapHash;
 
-        require(
-            _storedSwapHash != ROOT_MILKMAN_SWAP_HASH,
-            "!is_valid_sig_from_root"
-        );
+        require(_storedSwapHash != ROOT_MILKMAN_SWAP_HASH, "!is_valid_sig_from_root");
 
-        (
-            GPv2Order.Data memory _order,
-            address _orderCreator,
-            address _priceChecker,
-            bytes memory _priceCheckerData
-        ) = decodeOrder(encodedOrder);
+        (GPv2Order.Data memory _order, address _orderCreator, address _priceChecker, bytes memory _priceCheckerData) =
+            decodeOrder(encodedOrder);
 
         require(_order.hash(DOMAIN_SEPARATOR) == orderDigest, "!match");
 
         require(_order.kind == GPv2Order.KIND_SELL, "!kind_sell");
 
-        require(
-            _order.validTo >= block.timestamp + 5 minutes,
-            "expires_too_soon"
-        );
+        require(_order.validTo >= block.timestamp + 5 minutes, "expires_too_soon");
 
         require(!_order.partiallyFillable, "!fill_or_kill");
 
-        require(
-            _order.sellTokenBalance == GPv2Order.BALANCE_ERC20,
-            "!sell_erc20"
-        );
+        require(_order.sellTokenBalance == GPv2Order.BALANCE_ERC20, "!sell_erc20");
 
-        require(
-            _order.buyTokenBalance == GPv2Order.BALANCE_ERC20,
-            "!buy_erc20"
-        );
+        require(_order.buyTokenBalance == GPv2Order.BALANCE_ERC20, "!buy_erc20");
 
         require(
             IPriceChecker(_priceChecker).checkPrice(
@@ -223,10 +181,8 @@ contract Milkman {
             bytes memory _priceCheckerData
         )
     {
-        (_order, _orderCreator, _priceChecker, _priceCheckerData) = abi.decode(
-            _encodedOrder,
-            (GPv2Order.Data, address, address, bytes)
-        );
+        (_order, _orderCreator, _priceChecker, _priceCheckerData) =
+            abi.decode(_encodedOrder, (GPv2Order.Data, address, address, bytes));
     }
 
     function createOrderContract() internal returns (address _orderContract) {
@@ -236,15 +192,9 @@ contract Milkman {
         assembly {
             // EIP-1167 bytecode
             let clone_code := mload(0x40)
-            mstore(
-                clone_code,
-                0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000
-            )
+            mstore(clone_code, 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000)
             mstore(add(clone_code, 0x14), addressBytes)
-            mstore(
-                add(clone_code, 0x28),
-                0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000
-            )
+            mstore(add(clone_code, 0x28), 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000)
             _orderContract := create(0, clone_code, 0x37)
         }
     }

@@ -1,0 +1,4 @@
+@openzeppelin/=lib/openzeppelin-contracts/
+@cow-protocol/=lib/contracts/src
+@balancer=lib/balancer-v2-monorepo/contracts
+surl=lib/surl-0.7/src

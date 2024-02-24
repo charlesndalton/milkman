@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 pragma solidity ^0.7.6;
+
 pragma abicoder v2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -19,18 +20,12 @@ contract FixedSlippageChecker is IPriceChecker {
 
     uint256 internal constant MAX_BPS = 10_000;
 
-    constructor(
-        string memory _name,
-        uint256 _allowedSlippageInBps,
-        address _expectedOutCalculator
-    ) {
+    constructor(string memory _name, uint256 _allowedSlippageInBps, address _expectedOutCalculator) {
         require(_allowedSlippageInBps <= MAX_BPS);
 
         NAME = _name;
         ALLOWED_SLIPPAGE_IN_BPS = _allowedSlippageInBps;
-        EXPECTED_OUT_CALCULATOR = IExpectedOutCalculator(
-            _expectedOutCalculator
-        );
+        EXPECTED_OUT_CALCULATOR = IExpectedOutCalculator(_expectedOutCalculator);
     }
 
     function checkPrice(
@@ -40,16 +35,14 @@ contract FixedSlippageChecker is IPriceChecker {
         uint256,
         uint256 _minOut,
         bytes calldata _data
-    ) external view override returns (bool) {
-        uint256 _expectedOut = EXPECTED_OUT_CALCULATOR.getExpectedOut(
-            _amountIn,
-            _fromToken,
-            _toToken,
-            _data
-        );
+    )
+        external
+        view
+        override
+        returns (bool)
+    {
+        uint256 _expectedOut = EXPECTED_OUT_CALCULATOR.getExpectedOut(_amountIn, _fromToken, _toToken, _data);
 
-        return
-            _minOut >
-            _expectedOut.mul(MAX_BPS.sub(ALLOWED_SLIPPAGE_IN_BPS)).div(MAX_BPS);
+        return _minOut > _expectedOut.mul(MAX_BPS.sub(ALLOWED_SLIPPAGE_IN_BPS)).div(MAX_BPS);
     }
 }
